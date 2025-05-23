@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Kağıt Formatı Tanımı -->
+    <record id="paperformat_mo_label" model="report.paperformat">
+        <field name="name">Üretim Etiketi</field>
+        <field name="default" eval="True"/>
+        <field name="format">custom</field>
+        <field name="page_height">100</field>  <!-- Yükseklik 100mm -->
+        <field name="page_width">100</field>   <!-- Genişlik 100mm -->
+        <field name="margin_top">1</field>
+        <field name="margin_bottom">1</field>
+        <field name="margin_left">1</field>
+        <field name="margin_right">1</field>
+        <field name="orientation">Portrait</field>
+        <field name="dpi">90</field>
+    </record>
+
+
+    <!-- Rapor Tanımı -->
+    <record id="action_report_mo_label" model="ir.actions.report">
+        <field name="name">Üretim Emri Etiketi (PDF)</field>
+        <field name="model">mrp.production</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">yuz18.report_mo_label</field>
+        <field name="report_file">yuz18.report_mo_label</field>
+        <field name="paperformat_id" ref="yuz18.paperformat_mo_label"/>
+        <field name="print_report_name">'Üretim Emri - %s' % object.name</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_type">report</field>
+    </record>
+
+
+    <template id="report_mo_label">
+    <t t-call="web.basic_layout">
+
+        <t t-set="uom_categ_unit" t-value="env.ref('uom.product_uom_categ_unit')"/>
+
+        <t t-foreach="docs" t-as="uretim">
+            <t t-set="move_line" t-value="uretim.move_finished_ids.move_line_ids.filtered(lambda ml: ml.move_id.production_id.state == 'done' and ml.state == 'done' and ml.quantity)"/>
+            <div style="width: 100mm; font-family: Arial, sans-serif;">
+
+                <table class="table table-sm table-borderless" style="width: 100%; font-size: 14px; margin-bottom: 10px; table-layout: fixed;">
+                    <tbody>
+                        <tr>
+                            <td style="width: 50%;"><strong>Eleman Adı:</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.urun_adi" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>Açıklamalar:</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.urun_aciklama" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>Proje:</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.project_id.name" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>Kalıp Kodu:</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.kalip_id.name" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>Sorumlu Şef:</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.user_id.name" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>Döküm Tarihi:</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.date_start.strftime('%d.%m.%Y')" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>En Kesit (cm):</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.en" /></td>
+                        </tr>
+                        <tr>
+                             <td style="width: 50%;"><strong>Boy Kesit (cm):</strong></td>
+                             <td style="width: 50%;"><t t-esc="uretim.boy" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>Uzunluk (cm):</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.uzunluk" /></td>
+                        </tr>
+                        <tr>
+                            <td style="width: 50%;"><strong>Ürün Ağırlığı (Ton):</strong></td>
+                            <td style="width: 50%;"><t t-esc="uretim.agirlik" /></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table class="table-borderless" style="width: 100%;  margin-top: 5px;">
+                     <tbody>
+                        <tr>
+                            <td style="width: 20%; text-align: center; vertical-align: center; padding-right: 5px;">
+                                 <img src="/yuz18/static/src/img/ylogo.jpeg"
+                                      style="max-width: 30mm; max-height: 50px;" />
+                            </td>
+
+                            <td style="width: 100%; vertical-align: top; position: relative;">
+
+                                <div style="width:95%;  margin: 0 auto;"> <t t-if="move_line" t-translation="off">
+                                        <t t-if="move_line.product_id.tracking != 'none' and (move_line.lot_name or move_line.lot_id)">
+                                            <div t-field="move_line.lot_name or move_line.lot_id.name" t-options="{'widget': 'barcode', 'img_style': 'width:120%;'}" />
+                                            <div class="o_label_4x12 text-center" style="width:120%;font-size: 11px;"><span t-out="move_line.lot_name or move_line.lot_id.name"/></div>
+                                        </t>
+                                        <t t-elif="move_line.product_id.tracking == 'none' and move_line.product_id.barcode">
+                                            <div t-field="move_line.product_id.barcode" t-options="{'widget': 'barcode', 'img_style': 'width:100%; max-height: 150px;'}" />
+                                            <div class="o_label_4x12 text-center" style="font-size: 25px;"><span t-out="move_line.product_id.barcode"/></div>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="text-muted">Barkod Yok</span>
+                                        </t>
+                                    </t>
+                                    <t t-else="">
+                                        <span class="text-muted">Barkod Bilgisi Yok</span>
+                                    </t>
+                                </div>
+                                <div t-if="move_line" style="position: absolute; bottom: 80px; /* Barkodun yüksekliğine göre ayarla! */ right: 25px; z-index: 1;">
+                                    <div style="display: inline-block; font-size: 8px; text-align: center; font-weight: bold; font-family: Arial, sans-serif;">
+                                        <div>
+                                            <img src="/yuz18/static/src/img/ce_logo.png" style="width: 40px; height: auto;" />
+                                        </div>
+                                        <div>1783</div>
+                                    </div>
+                                </div>
+                                </td>
+                        </tr>
+                    </tbody>
+                </table>
+                </div>
+        </t>
+    </t>
+</template>
+
+
+</odoo>
+
