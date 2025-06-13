@@ -1,23 +1,43 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields
+# Part of Odoo. See LICENSE file for full copyright and licensing details.
+
+from odoo import fields, models
+
 
 class ProjectTask(models.Model):
     _inherit = 'project.task'
 
-    # project.task modeline Lot/Seri No alanı ekliyoruz
-    # Bu alan, stock.production.lot modeline bir Many2one ilişkisi kurar
-    # x_lot_id = fields.Many2one(
-    #     comodel_name='stock.production.lot', # Bağlanılacak model
-    #     string='Lot/Seri No',              # Alanın etiketi (arayüzde görünecek)
-    #     copy=False,                        # Görev kopyalandığında bu alan kopyalanmasın
-    #     index=True,                        # Veritabanında index oluştur (aramaları hızlandırabilir)
-    #     tracking=True,                     # Değişikliklerin chatter'da izlenmesini sağla
-    #     help="Bu görevle ilişkili üretim lotu/seri numarası." # Yardım metni
-    # )
-
-    # İsteğe bağlı: Sadece seri numarasının adını (metin olarak) göstermek için
-    x_lot_id = fields.Char(
-        string='Seri Numarası (Metin)',
+    # Bu alan, görevin hangi satış siparişi satırından oluşturulduğunu takip eder.
+    # Alan adı değiştirildi: sale_line_id -> ilgili_satis_satiri_id
+    ilgili_satis_satiri_id = fields.Many2one(
+        'sale.order.line',
+        string="İlgili Satış Satırı",  # Etiket Türkçe
         readonly=True,
-        store=True # Arama ve gruplama için saklanması önerilir
+        help="Bu görevin ilişkili olduğu satış siparişi satırı."
     )
+
+    # Satış siparişi ID'sini de tutmak, navigasyon veya raporlama için faydalı olabilir.
+    # Alan adı değiştirildi: sale_order_id -> ilgili_satis_siparisi_id
+    ilgili_satis_siparisi_id = fields.Many2one(
+        'sale.order',
+        string="İlgili Satış Siparişi",  # Etiket Türkçe
+        related='ilgili_satis_satiri_id.order_id',  # related alan da yeni isme göre güncellendi
+        store=True,
+        readonly=True,
+        help="Bu görevin ilişkili olduğu satış siparişi."
+    )
+
+    # Ürün adı ve açıklamasını görev üzerinde tutmak isterseniz (isteğe bağlı):
+    # product_id = fields.Many2one(
+    #     'product.product',
+    #     string="Ürün",
+    #     related='ilgili_satis_satiri_id.product_id',
+    #     store=True,
+    #     readonly=True
+    # )
+    # product_description = fields.Char(
+    #     string="Ürün Açıklaması",
+    #     related='ilgili_satis_satiri_id.name',
+    #     store=True,
+    #     readonly=True
+    # )

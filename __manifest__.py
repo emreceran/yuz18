@@ -18,7 +18,7 @@ Long description of module's purpose
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'mrp', 'sale_stock', 'sale_project', 'mrp_sale_info'],
+    'depends': ['base', 'mrp', 'sale_stock', 'sale_project', 'mrp_sale_info','sale_management', 'project',  'sale_project'],
 
     # always loaded
     'data': [

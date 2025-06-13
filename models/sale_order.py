@@ -71,8 +71,8 @@ class SaleOrder(models.Model):
                             f"Satış Siparişi #{order.name} için ürün ({line.product_id.name}) indirilecekler listesinde.{task_description_suffix}"),
                         'allocated_hours': line.product_uom_qty,
                         'stage_id': stage_indirilecekler.id,
-                        'sale_order_id': order.id,  # Görevi satış siparişine bağlamak için ek alan
-                        'sale_line_id': line.id,  # Görevi satış sipariş satırına bağlamak için ek alan
+                        'ilgili_satis_siparisi_id': self.id,  # Yeni alan adı
+                        'ilgili_satis_satiri_id': line.id,  # Yeni alan adı
                     })
 
                     # 2. Görev: Montaj Yapılacaklar Aşaması
@@ -83,8 +83,8 @@ class SaleOrder(models.Model):
                             f"Satış Siparişi #{order.name} için ürün ({line.product_id.name}) montajı yapılacak.{task_description_suffix}"),
                         'allocated_hours': line.product_uom_qty,
                         'stage_id': stage_montaj.id,
-                        'sale_order_id': order.id,  # Görevi satış siparişine bağlamak için ek alan
-                        'sale_line_id': line.id,  # Görevi satış sipariş satırına bağlamak için ek alan
+                        'ilgili_satis_siparisi_id': self.id,  # Yeni alan adı
+                        'ilgili_satis_satiri_id': line.id,  # Yeni alan adı
                     })
         return {
             'type': 'ir.actions.client',

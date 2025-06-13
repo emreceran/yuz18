@@ -13,12 +13,12 @@ class SaleOrderLine(models.Model):
     _inherit = 'sale.order.line'
 
     mrp_production_count = fields.Integer(
-        "Related MO Count (Filtered from SO)", # Alan etiketi güncellendi
+        "Üretilen Miktar", # Alan etiketi güncellendi
         compute='_compute_mrp_from_order', # Hesaplama metodu yeniden adlandırıldı
         store=False, # Performans için saklanmaz
         help="Number of Manufacturing Orders from the parent Sale Order "
              "that match the product on this line.", # Yardım metni güncellendi
-        groups='mrp.group_system') # MRP kullanıcıları için görünürlük
+        ) # MRP kullanıcıları için görünürlük
     mrp_production_ids = fields.Many2many(
         'mrp.production',
         string='Related MOs (Filtered from SO)', # Alan etiketi güncellendi
@@ -27,7 +27,18 @@ class SaleOrderLine(models.Model):
         help="Manufacturing Orders from the parent Sale Order "
              "that match the product on this line.", # Yardım metni güncellendi
         copy=False, # Kopyalamayı engelle
-        groups='mrp.group_system') # MRP kullanıcıları için görünürlük
+        ) # MRP kullanıcıları için görünürlük
+
+    # Yeni eklenecek project_id alanı
+    proje_id = fields.Many2one(
+        'project.project',
+        string='Proje',
+        related='order_id.project_id',  # Siparişin projesiyle otomatik ilişkilendir
+        store=True,  # Veritabanında sakla
+        readonly=False,  # Kullanıcının değiştirmesine izin ver
+        ondelete='restrict',  # Proje silinirse satırın silinmesini engelle
+        help="Bu satış siparişi satırıyla ilişkili proje."
+    )
 
     # Bağımlılık order_id'nin mrp_production_ids alanına ve satırın product_id'sine olmalı
     @api.depends('order_id.mrp_production_ids', 'product_id')
@@ -58,17 +69,11 @@ class SaleOrderLine(models.Model):
 
             # Sonuçları ata
             line.mrp_production_ids = product_specific_mos
-            line.mrp_production_count = len(product_specific_mos)
+            # Eğer amaç toplam ürün miktarı ise:
+            line.mrp_production_count = sum(product_specific_mos.mapped('product_qty'))
 
     def action_view_mrp_production(self):
-        """
-        Action to open the view for Manufacturing Orders related to the sale order line,
-        filtered by the product on the line (using the computation based on SO's MOs).
-        Satırdaki ürüne göre filtrelenmiş (SO'nun ÜE'lerine dayalı hesaplamayı kullanarak)
-        satış siparişi satırıyla ilgili Üretim Emirleri görünümünü açma eylemi.
-        """
         self.ensure_one()
-        # Hesaplanan alanı kullanarak üretim ID'lerini al
         mrp_production_ids = self.mrp_production_ids
 
         action = {
@@ -82,12 +87,52 @@ class SaleOrderLine(models.Model):
             action.update({
                 'view_mode': 'form',
                 'res_id': mrp_production_ids.id,
-                'views': [(False, 'form')],
+                # Tek bir kayıt için 'views' listesine gerek yok
             })
-        else:
+        else:  # Birden fazla MO olduğunda
             action.update({
                 'name': _("MOs for %s (Product: %s)", self.order_id.name, self.product_id.display_name),
-                'view_mode': 'tree,form',
-                'views': [(False, 'tree'), (False, 'form')],
+                'view_mode': 'list,form',  # BURASI KESİN OLARAK 'list,form' olmalı (Odoo 18)
+                'views': False,  # BURASI DÜZELTİLDİ: Odoo'nun varsayılanı bulmasını sağla
+                # Alternatif olarak boş bir liste de kullanılabilir: 'views': [],
             })
         return action
+
+    # İndirme ve Montaj Görevi İlerlemesi (effective_hours olarak gösterilecek)
+    task_indir_progress = fields.Float(  # Tipi Float olarak değiştirildi, ismi AYNI KALDI
+        string='İndirilen Miktarı',  # Etiket biraz daha açıklayıcı yapıldı
+        compute='_compute_task_progress_hours',  # Metot adı güncellendi
+        digits='Product Unit of Measure',  # Saatler için uygun bir hassasiyet
+        store=False,
+        help="Bu satış siparişi satırı için 'İndirilecekler' görevi üzerinde harcanan toplam saat."
+    )
+    task_montaj_progress = fields.Float(  # Tipi Float olarak değiştirildi, ismi AYNI KALDI
+        string='Montaj Miktarı',  # Etiket biraz daha açıklayıcı yapıldı
+        compute='_compute_task_progress_hours',  # Metot adı güncellendi
+        digits='Product Unit of Measure',  # Saatler için uygun bir hassasiyet
+        store=False,
+        help="Bu satış siparişi satırı için 'Montaj Yapılacaklar' görevi üzerinde harcanan toplam saat."
+    )
+
+    # Hesaplama Metodu: Görevlerin effective_hours değerlerini getirir
+    @api.depends('order_id.project_id', 'order_id.project_id.task_ids.ilgili_satis_satiri_id',
+                 'order_id.project_id.task_ids.effective_hours')
+    def _compute_task_progress_hours(self):  # Metot adı güncellendi
+        for line in self:
+            line.task_indir_progress = 0.0  # float olarak başlat
+            line.task_montaj_progress = 0.0  # float olarak başlat
+
+            if not line.order_id.project_id:
+                continue
+
+            # Bu satış siparişi satırı ile doğrudan ilişkili görevleri ara
+            related_tasks = self.env['project.task'].search([
+                ('ilgili_satis_satiri_id', '=', line.id),
+                ('project_id', '=', line.order_id.project_id.id),
+            ])
+
+            for task in related_tasks:
+                if "İndirilecekler" in task.name:
+                    line.task_indir_progress += task.effective_hours
+                elif "Montaj Yapılacaklar" in task.name:
+                    line.task_montaj_progress += task.effective_hours

@@ -34,16 +34,43 @@
         <record id="sale_order_line_view_form_inherit_mrp_production" model="ir.ui.view">
             <field name="name">sale.order.line.form.inherit.mrp.production</field>
             <field name="model">sale.order.line</field>
-            <field name="inherit_id" ref="sale_project.view_order_line_tree_with_create"/> <field name="arch" type="xml">
-            <xpath expr="//field[@name='product_uom_qty']" position="after">
-                <field name="mrp_production_count" invisible="1"/>
-                <button name="action_view_mrp_production"
-                        type="object"
-                        string="MOs"
-                        class="oe_highlight"
-                        icon="fa-cogs"
-                        invisible="mrp_production_count == 0"
-                        help="View related Manufacturing Orders for this line"/>
+            <field name="inherit_id" ref="sale_project.view_order_line_tree_with_create"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='order_partner_id']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+
+                <xpath expr="//field[@name='order_id']" position="replace">
+                    <field name="proje_id" />
+                </xpath>
+
+                <xpath expr="//field[@name='salesman_id']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+
+
+                <xpath expr="//field[@name='product_uom_qty']" position="after">
+                    <field name="mrp_production_count" />
+                    <button name="action_view_mrp_production"
+                            type="object"
+                            string="MOs"
+                            class="oe_highlight"
+                            icon="fa-cogs"
+                            help="View related Manufacturing Orders for this line"/>
+
+                    <field name="task_indir_progress"  widget="progressbar" />
+                    <field name="task_montaj_progress" />
+                </xpath>
+            </field>
+        </record>
+
+        <record id="project_task_view_form_inherit_sale_link" model="ir.ui.view">
+            <field name="name">project.task.form.inherit.sale.link</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_form2"/> <field name="arch" type="xml">
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="ilgili_satis_siparisi_id" readonly="1" options="{'no_open': True, 'no_create': True}"/>
+                <field name="ilgili_satis_satiri_id" readonly="1" options="{'no_open': True, 'no_create': True}"/>
             </xpath>
         </field>
         </record>
