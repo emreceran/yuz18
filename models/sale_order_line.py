@@ -18,7 +18,7 @@ class SaleOrderLine(models.Model):
         store=False, # Performans için saklanmaz
         help="Number of Manufacturing Orders from the parent Sale Order "
              "that match the product on this line.", # Yardım metni güncellendi
-        groups='mrp.group_mrp_user') # MRP kullanıcıları için görünürlük
+        groups='mrp.group_system') # MRP kullanıcıları için görünürlük
     mrp_production_ids = fields.Many2many(
         'mrp.production',
         string='Related MOs (Filtered from SO)', # Alan etiketi güncellendi
@@ -27,7 +27,7 @@ class SaleOrderLine(models.Model):
         help="Manufacturing Orders from the parent Sale Order "
              "that match the product on this line.", # Yardım metni güncellendi
         copy=False, # Kopyalamayı engelle
-        groups='mrp.group_mrp_user') # MRP kullanıcıları için görünürlük
+        groups='mrp.group_system') # MRP kullanıcıları için görünürlük
 
     # Bağımlılık order_id'nin mrp_production_ids alanına ve satırın product_id'sine olmalı
     @api.depends('order_id.mrp_production_ids', 'product_id')
