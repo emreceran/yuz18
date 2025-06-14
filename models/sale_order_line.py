@@ -141,7 +141,6 @@ class SaleOrderLine(models.Model):
                 elif "Montaj Yapılacaklar" in task.name:
                     line.task_montaj_progress += task.effective_hours
 
-    # product_display_name_custom için compute metodu (mevcut kodunuzdaki gibi)
     @api.depends('name', 'product_id')
     def _compute_product_names_and_description(self):
         for line in self:
@@ -154,25 +153,48 @@ class SaleOrderLine(models.Model):
             extracted_product_name = False
             cleaned_description = current_name
 
-            pattern_to_extract = r'(?:Ürün Adı:\s*Ürün Adı:\s*)(.*?)(?:\s*Uzunluk:|\s*Ürün Adı:|[\n\r]|$)'
-            match = re.search(pattern_to_extract, current_name)
+            # YENİ REGEX VE STRATEJİ:
+            # - `re.DOTALL` (re.S) ile birden fazla satırı kapsa.
+            # - `re.IGNORECASE` (re.I) ile büyük/küçük harf duyarsızlığı.
+            # - `(?m)` = re.MULTILINE bayrağı için. ^ ve $ satır başlangıcı/sonunu işaret etsin diye.
+            # - Pattern: 'Ürün adı: Ürün adı: ' ile başlayan ve sonraki 'Ürün açıklama:', 'Uzunluk:' veya satır sonu ile biten kısmı yakala.
+
+            pattern_to_extract = r'(?m)^Ürün\s*adı:\s*Ürün\s*adı:\s*(.*?)(?=\nÜrün\s*açıklama:|\nUzunluk:|$)'
+            match = re.search(pattern_to_extract, current_name, re.DOTALL | re.IGNORECASE)
 
             if match:
                 extracted_product_name = match.group(1).strip()
                 line.product_display_name_custom = extracted_product_name
+                _logger.info(f"Extracted product name: '{extracted_product_name}'")
 
-                cleaned_description = re.sub(re.escape(match.group(0)), '', current_name, 1).strip()
-                cleaned_description = re.sub(r'\s+', ' ', cleaned_description).strip()
-                cleaned_description = re.sub(r'^[,\s(]+|[,\s)]+$', '', cleaned_description).strip()
+                # Eşleşen kısmı orijinal metinden çıkar
+                cleaned_description = re.sub(pattern_to_extract, '', current_name, 1, re.DOTALL | re.IGNORECASE).strip()
+                _logger.info(f"Cleaned description (after removing product name pattern): '{cleaned_description}'")
 
+                # Fazla boşlukları, boş satırları ve baştaki/sondaki özel karakterleri temizle
+                cleaned_description = re.sub(r'[\r\n]+', '\n',
+                                             cleaned_description).strip()  # Birden fazla yeni satırı tek satıra indir
+                cleaned_description = re.sub(r'\s{2,}', ' ',
+                                             cleaned_description).strip()  # Birden fazla boşluğu tek boşluğa
+                cleaned_description = re.sub(r'^[,\s(]+|[,\s)]+$', '',
+                                             cleaned_description).strip()  # Başında/sonunda parantez/virgül temizle
+
+                # Eğer açıklama tamamen boş kalırsa ve geçerli bir ürün varsa, ürünün display_name'ini kullan
                 if not cleaned_description and line.product_id and line.product_id.exists():
                     line.name = line.product_id.display_name
                     _logger.info(
                         f"Cleaned description was empty, set line.name to product_display_name: {line.product_id.display_name}")
                 elif not cleaned_description:
-                    line.name = ""
+                    line.name = ""  # Açıklama tamamen boşsa boş bırak
+                    _logger.info("Cleaned description was empty, set line.name to empty string.")
+                else:
+                    line.name = cleaned_description  # Temizlenmiş açıklamayı ata
+                    _logger.info(f"Final line.name set to: '{line.name}'")
 
             else:
+                _logger.info("Product name pattern not found in description.")
+                # Eğer pattern bulunamazsa, product_display_name_custom'ı ürünün display_name'iyle doldur.
+                # 'name' alanına dokunmuyoruz, olduğu gibi kalır.
                 if line.product_id and line.product_id.exists():
                     line.product_display_name_custom = line.product_id.display_name
                     _logger.info(
@@ -181,6 +203,7 @@ class SaleOrderLine(models.Model):
                     line.product_display_name_custom = False
                     _logger.info("Product not found, product_display_name_custom set to False.")
 
+                # Eğer ürün yoksa, name alanını temizle (pattern bulunamadıysa da bu mantık uygulanabilir)
                 if not line.product_id:
                     line.name = ""
                     _logger.info("No product linked, line.name cleared.")
