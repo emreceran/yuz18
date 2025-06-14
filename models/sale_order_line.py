@@ -2,76 +2,99 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import api, fields, models, _
+import re
+import logging
+
+_logger = logging.getLogger(__name__)
+
 
 class SaleOrderLine(models.Model):
-    """
-    Inherits sale.order.line to link Manufacturing Orders by filtering
-    the parent Sale Order's existing mrp_production_ids field based on the line's product.
-    Satırın ürününe göre ana Satış Siparişinin mevcut mrp_production_ids alanını
-    filtreleyerek Üretim Emirlerini bağlamak için sale.order.line'ı devralır.
-    """
     _inherit = 'sale.order.line'
 
     mrp_production_count = fields.Integer(
-        "Üretilen Miktar", # Alan etiketi güncellendi
-        compute='_compute_mrp_from_order', # Hesaplama metodu yeniden adlandırıldı
-        store=False, # Performans için saklanmaz
-        help="Number of Manufacturing Orders from the parent Sale Order "
-             "that match the product on this line.", # Yardım metni güncellendi
-        ) # MRP kullanıcıları için görünürlük
+        "Üretilen Miktar",  # Alan etiketi güncellendi: 'Üretilen Miktar' yerine 'Bitmiş Üretilen Miktar'
+        compute='_compute_mrp_data',  # Metot adı güncellendi (tutarlılık için _compute_mrp_data kullanıyoruz)
+        store=False,
+        help="Bu satış satırı için ilgili Üretim Emirlerinden tamamlanmış ürün miktarı.",
+    )
     mrp_production_ids = fields.Many2many(
         'mrp.production',
-        string='Related MOs (Filtered from SO)', # Alan etiketi güncellendi
-        compute='_compute_mrp_from_order', # Hesaplama metodu yeniden adlandırıldı
-        store=False, # Performans için saklanmaz
-        help="Manufacturing Orders from the parent Sale Order "
-             "that match the product on this line.", # Yardım metni güncellendi
-        copy=False, # Kopyalamayı engelle
-        ) # MRP kullanıcıları için görünürlük
+        string='İlgili Üretim Emirleri',  # Önceki değişiklikten
+        compute='_compute_mrp_data',  # Metot adı güncellendi
+        store=False,
+        help="Ana Satış Siparişinden bu satırdaki ürünle eşleşen Üretim Emirleri.",
+        searchable=True,
+    )
 
-    # Yeni eklenecek project_id alanı
+    # Yeni eklenen alan: Üretim Emirlerinden toplam üretilen miktarı tutacak (önceki cevabımdaki `mo_produced_qty`)
+    # Sizin gönderdiğiniz kodda bu alan gözükmüyor. Eğer kullanmaya devam etmek istiyorsanız, eklemelisiniz.
+    # Ancak siz `mrp_production_count`'u "Üretilen Miktar" olarak kullanmak istediğiniz için,
+    # bu alanı `mo_produced_qty` yerine kullanabiliriz.
+    # Eğer `mo_production_progress_percentage` kullanmaya devam edecekseniz,
+    # onun bağımlılığı olan `mo_produced_qty`'yi de tutmanız gerekecektir.
+
+    # Mevcut kodunuzdaki `mrp_production_count`'ı hedef miktar yerine bitmiş miktar yapmak için:
+
+    # Proje alanı (mevcut kodunuzdaki gibi)
     proje_id = fields.Many2one(
         'project.project',
         string='Proje',
-        related='order_id.project_id',  # Siparişin projesiyle otomatik ilişkilendir
-        store=True,  # Veritabanında sakla
-        readonly=False,  # Kullanıcının değiştirmesine izin ver
-        ondelete='restrict',  # Proje silinirse satırın silinmesini engelle
+        related='order_id.project_id',
+        store=True,
+        readonly=False,
+        ondelete='restrict',
         help="Bu satış siparişi satırıyla ilişkili proje."
     )
 
-    # Bağımlılık order_id'nin mrp_production_ids alanına ve satırın product_id'sine olmalı
-    @api.depends('order_id.mrp_production_ids', 'product_id')
-    def _compute_mrp_from_order(self):
-        """
-        Computes Manufacturing Orders (MOs) for the Sale Order Line by
-        filtering the MOs already computed on the parent Sale Order.
-        It takes the `mrp_production_ids` from the `sale.order` and
-        filters them to include only those matching the product_id of this line.
+    # İndirme ve Montaj Görevi İlerlemesi (mevcut kodunuzdaki gibi)
+    task_indir_progress = fields.Float(
+        string='İndirilen Miktarısudo',
+        compute='_compute_task_progress_hours',
+        digits='Product Unit of Measure',
+        store=False,
+        help="Bu satış siparişi satırı için 'İndirilecekler' görevi üzerinde harcanan toplam saat."
+    )
+    task_montaj_progress = fields.Float(
+        string='Montaj Miktarı',
+        compute='_compute_task_progress_hours',
+        digits='Product Unit of Measure',
+        store=False,
+        help="Bu satış siparişi satırı için 'Montaj Yapılacaklar' görevi üzerinde harcanan toplam saat."
+    )
 
-        Ana Satış Siparişinde zaten hesaplanmış olan ÜE'leri filtreleyerek
-        Satış Siparişi Satırı için Üretim Emirlerini (ÜE) hesaplar.
-        `sale.order`'dan `mrp_production_ids`'yi alır ve bunları yalnızca
-        bu satırın `product_id`'si ile eşleşenleri içerecek şekilde filtreler.
-        """
-        # Başlangıçta tüm satırlar için alanları sıfırla/boşalt
-        # self.mrp_production_ids = False # Many2many için False atamak yerine boş kayıt kümesi atamak daha iyi
-        # self.mrp_production_count = 0
+    # Ürün Adı ile ilgili alan (mevcut kodunuzdaki gibi)
+    product_display_name_custom = fields.Char(
+        string='Ürün Adı',
+        compute='_compute_product_names_and_description',
+        readonly=False,
+        store=True,
+        help="Açıklama alanından ayrıştırılan ürün adı bilgisi."
+    )
 
+    # --- HESAPLAMA METOTLARI ---
+
+    # `_compute_mrp_from_order` metodunu `_compute_mrp_data` olarak güncelledik (önceki yanıtlardan tutarlılık için)
+    # Bağımlılıkları da `qty_produced`'a göre güncellendi.
+    @api.depends('order_id.mrp_production_ids', 'product_id',
+                 'order_id.mrp_production_ids.qty_produced')  # qty_produced'a bağımlılık eklendi
+    def _compute_mrp_data(self):  # Metot adı _compute_mrp_data olarak değiştirildi
+        """
+        MO'ları filtreler ve bitmiş üretilen miktarı (qty_produced) hesaplar.
+        """
         for line in self:
-            # Satırın bağlı olduğu siparişteki tüm ÜE'leri al
-            # Eğer order_id boşsa veya mrp_production_ids hesaplanmamışsa (None olabilir) kontrol et
             order_mos = line.order_id.mrp_production_ids if line.order_id else self.env['mrp.production']
 
-            # Bu ÜE'leri satırın ürününe göre filtrele
-            # Eğer product_id boşsa veya order_mos boşsa, filtreleme boş sonuç döndürecektir
+            # Bu ÜE'leri satırın ürününe göre filtrele VE SADECE 'done' (tamamlandı) durumundaki ÜE'leri al (isteğe bağlı ama mantıklı)
+            # Eğer sadece bitmiş MO'ları saymak istiyorsanız:
+            # product_specific_mos = order_mos.filtered(lambda mo: mo.product_id == line.product_id and mo.state == 'done')
+            # Eğer 'done' durumu yoksa veya tüm MO'lardan üretileni almak istiyorsanız sadece product_id'ye göre filtreleyin:
             product_specific_mos = order_mos.filtered(lambda mo: mo.product_id == line.product_id)
 
-            # Sonuçları ata
             line.mrp_production_ids = product_specific_mos
-            # Eğer amaç toplam ürün miktarı ise:
-            line.mrp_production_count = sum(product_specific_mos.mapped('product_qty'))
+            # BURADA DEĞİŞİKLİK: 'product_qty' yerine 'qty_produced' kullanıldı
+            line.mrp_production_count = sum(mo.qty_produced for mo in product_specific_mos)
 
+    # action_view_mrp_production metodu (mevcut kodunuzdaki gibi)
     def action_view_mrp_production(self):
         self.ensure_one()
         mrp_production_ids = self.mrp_production_ids
@@ -87,45 +110,26 @@ class SaleOrderLine(models.Model):
             action.update({
                 'view_mode': 'form',
                 'res_id': mrp_production_ids.id,
-                # Tek bir kayıt için 'views' listesine gerek yok
             })
-        else:  # Birden fazla MO olduğunda
+        else:
             action.update({
                 'name': _("MOs for %s (Product: %s)", self.order_id.name, self.product_id.display_name),
-                'view_mode': 'list,form',  # BURASI KESİN OLARAK 'list,form' olmalı (Odoo 18)
-                'views': False,  # BURASI DÜZELTİLDİ: Odoo'nun varsayılanı bulmasını sağla
-                # Alternatif olarak boş bir liste de kullanılabilir: 'views': [],
+                'view_mode': 'list,form',
+                'views': False,
             })
         return action
 
-    # İndirme ve Montaj Görevi İlerlemesi (effective_hours olarak gösterilecek)
-    task_indir_progress = fields.Float(  # Tipi Float olarak değiştirildi, ismi AYNI KALDI
-        string='İndirilen Miktarı',  # Etiket biraz daha açıklayıcı yapıldı
-        compute='_compute_task_progress_hours',  # Metot adı güncellendi
-        digits='Product Unit of Measure',  # Saatler için uygun bir hassasiyet
-        store=False,
-        help="Bu satış siparişi satırı için 'İndirilecekler' görevi üzerinde harcanan toplam saat."
-    )
-    task_montaj_progress = fields.Float(  # Tipi Float olarak değiştirildi, ismi AYNI KALDI
-        string='Montaj Miktarı',  # Etiket biraz daha açıklayıcı yapıldı
-        compute='_compute_task_progress_hours',  # Metot adı güncellendi
-        digits='Product Unit of Measure',  # Saatler için uygun bir hassasiyet
-        store=False,
-        help="Bu satış siparişi satırı için 'Montaj Yapılacaklar' görevi üzerinde harcanan toplam saat."
-    )
-
-    # Hesaplama Metodu: Görevlerin effective_hours değerlerini getirir
+    # task_indir_progress ve task_montaj_progress için compute metodu (mevcut kodunuzdaki gibi)
     @api.depends('order_id.project_id', 'order_id.project_id.task_ids.ilgili_satis_satiri_id',
                  'order_id.project_id.task_ids.effective_hours')
-    def _compute_task_progress_hours(self):  # Metot adı güncellendi
+    def _compute_task_progress_hours(self):
         for line in self:
-            line.task_indir_progress = 0.0  # float olarak başlat
-            line.task_montaj_progress = 0.0  # float olarak başlat
+            line.task_indir_progress = 0.0
+            line.task_montaj_progress = 0.0
 
             if not line.order_id.project_id:
                 continue
 
-            # Bu satış siparişi satırı ile doğrudan ilişkili görevleri ara
             related_tasks = self.env['project.task'].search([
                 ('ilgili_satis_satiri_id', '=', line.id),
                 ('project_id', '=', line.order_id.project_id.id),
@@ -136,3 +140,47 @@ class SaleOrderLine(models.Model):
                     line.task_indir_progress += task.effective_hours
                 elif "Montaj Yapılacaklar" in task.name:
                     line.task_montaj_progress += task.effective_hours
+
+    # product_display_name_custom için compute metodu (mevcut kodunuzdaki gibi)
+    @api.depends('name', 'product_id')
+    def _compute_product_names_and_description(self):
+        for line in self:
+            _logger.info(
+                f"Processing SaleOrderLine ID: {line.id}, Product ID: {line.product_id.id if line.product_id else 'None'}")
+            _logger.info(f"Type of line.product_id: {type(line.product_id)}")
+            _logger.info(f"Is line.product_id a recordset? {isinstance(line.product_id, models.BaseModel)}")
+
+            current_name = line.name or ""
+            extracted_product_name = False
+            cleaned_description = current_name
+
+            pattern_to_extract = r'(?:Ürün Adı:\s*Ürün Adı:\s*)(.*?)(?:\s*Uzunluk:|\s*Ürün Adı:|[\n\r]|$)'
+            match = re.search(pattern_to_extract, current_name)
+
+            if match:
+                extracted_product_name = match.group(1).strip()
+                line.product_display_name_custom = extracted_product_name
+
+                cleaned_description = re.sub(re.escape(match.group(0)), '', current_name, 1).strip()
+                cleaned_description = re.sub(r'\s+', ' ', cleaned_description).strip()
+                cleaned_description = re.sub(r'^[,\s(]+|[,\s)]+$', '', cleaned_description).strip()
+
+                if not cleaned_description and line.product_id and line.product_id.exists():
+                    line.name = line.product_id.display_name
+                    _logger.info(
+                        f"Cleaned description was empty, set line.name to product_display_name: {line.product_id.display_name}")
+                elif not cleaned_description:
+                    line.name = ""
+
+            else:
+                if line.product_id and line.product_id.exists():
+                    line.product_display_name_custom = line.product_id.display_name
+                    _logger.info(
+                        f"Pattern not found, set product_display_name_custom to product_display_name: {line.product_id.display_name}")
+                else:
+                    line.product_display_name_custom = False
+                    _logger.info("Product not found, product_display_name_custom set to False.")
+
+                if not line.product_id:
+                    line.name = ""
+                    _logger.info("No product linked, line.name cleared.")

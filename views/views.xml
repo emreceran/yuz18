@@ -44,12 +44,17 @@
                     <field name="proje_id" />
                 </xpath>
 
+                <xpath expr="//field[@name='name']" position="replace">
+                    <field name="product_display_name_custom" />
+                </xpath>
+
                 <xpath expr="//field[@name='salesman_id']" position="attributes">
                     <attribute name="column_invisible">1</attribute>
                 </xpath>
 
 
                 <xpath expr="//field[@name='product_uom_qty']" position="after">
+
                     <field name="mrp_production_count" />
                     <button name="action_view_mrp_production"
                             type="object"
