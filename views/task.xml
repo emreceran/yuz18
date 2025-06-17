@@ -1,0 +1,47 @@
+<odoo>
+    <data>
+
+
+        <record id="project_task_view_form_inherit_sale_link" model="ir.ui.view">
+            <field name="name">project.task.form.inherit.sale.link</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_form2"/>
+            <field name="arch" type="xml">
+            <xpath expr="//field[@name='tag_ids']" position="after">
+                <field name="ilgili_satis_siparisi_id" readonly="1" options="{'no_open': True, 'no_create': True}"/>
+                <field name="ilgili_satis_satiri_id" readonly="1" options="{'no_open': True, 'no_create': True}"/>
+                <field name="teslim_edilen_miktar" readonly="1" options="{'no_open': True, 'no_create': True}"/>
+                <field name="talep_edilen_miktar" readonly="1" options="{'no_open': True, 'no_create': True}"/>
+                <field name="montaJ_yapilan_miktar" readonly="1" options="{'no_open': True, 'no_create': True}"/>
+                <field name="urun_adi" readonly="1" options="{'no_open': True, 'no_create': True}"/>
+            </xpath>
+        </field>
+        </record>
+
+      <record id="view_task_kanban_inherit_sale_info" model="ir.ui.view">
+            <field name="name">project.task.kanban.inherit.sale.info</field>
+            <field name="model">project.task</field>
+            <field name="inherit_id" ref="project.view_task_kanban"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='partner_id']" position="replace">
+
+                    <div >
+                        <span>Talep Edilen Miktar: <field name="talep_edilen_miktar"/></span>
+                    </div>
+                    <div >
+                        <span>Teslim Edilen Miktar: <field name="teslim_edilen_miktar"/></span>
+                    </div>
+
+                     <div >
+                        <span>Montaj  Yapılan Miktar: <field name="montaJ_yapilan_miktar"/></span>
+                    </div>
+
+
+
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

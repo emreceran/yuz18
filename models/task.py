@@ -27,17 +27,37 @@ class ProjectTask(models.Model):
         help="Bu görevin ilişkili olduğu satış siparişi."
     )
 
-    # Ürün adı ve açıklamasını görev üzerinde tutmak isterseniz (isteğe bağlı):
-    # product_id = fields.Many2one(
-    #     'product.product',
-    #     string="Ürün",
-    #     related='ilgili_satis_satiri_id.product_id',
-    #     store=True,
-    #     readonly=True
-    # )
-    # product_description = fields.Char(
-    #     string="Ürün Açıklaması",
-    #     related='ilgili_satis_satiri_id.name',
-    #     store=True,
-    #     readonly=True
-    # )
+
+ # Satış siparişi satırındaki teslim edilen miktar (qty_delivered) bilgisini göreve getiriyoruz.
+    teslim_edilen_miktar = fields.Float(
+        string="Teslim Edilen Miktar",
+        related='ilgili_satis_satiri_id.qty_delivered',
+        store=True,
+        readonly=True,
+        help="İlgili satış siparişi satırında teslim edilen miktar."
+    )
+
+    talep_edilen_miktar = fields.Float(
+        string="Talep Edilen Miktar",
+        related='ilgili_satis_satiri_id.product_uom_qty',
+        store=True,
+        readonly=True,
+        help="İlgili satış siparişi satırında teslim edilen miktar."
+    )
+
+    montaJ_yapilan_miktar = fields.Float(
+        string="Monte Edilen Miktar",
+        related='ilgili_satis_satiri_id.task_montaj_progress',
+        store=True,
+        readonly=True,
+        help="İlgili satış siparişi satırında teslim edilen miktar."
+    )
+
+    urun_adi = fields.Many2one(
+        'product.template',
+        string="Monte Edilen Ürün",
+        related='ilgili_satis_satiri_id.product_template_id',
+        store=True,  # BURASI ÇOK ÖNEMLİ! True olmalı.
+        readonly=True,
+        help="Bu görevin ilişkili olduğu satış siparişi satırındaki ürün."
+    )
