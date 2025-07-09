@@ -28,7 +28,7 @@ Long description of module's purpose
         'views/report.xml',
         'views/mrp_bom_views.xml',
         'views/mrp_production_views.xml',
-        'views/task.xml',
+        # 'views/task.xml',
         # 'views/mrp_bom_line_views.xml',
     ],
     # only loaded in demonstration mode

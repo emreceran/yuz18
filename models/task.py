@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo import fields, models
+from odoo import models, fields, api
 
 
 class ProjectTask(models.Model):
@@ -61,3 +61,24 @@ class ProjectTask(models.Model):
         readonly=True,
         help="Bu görevin ilişkili olduğu satış siparişi satırındaki ürün."
     )
+
+    def action_open_timesheet_entry(self):
+        self.ensure_one()
+
+        # Modül adınızın doğru olduğundan emin olun (örn: 'yuz18')
+        custom_view_id = self.env.ref('yuz18.my_custom_timesheet_form_view').id
+
+        return {
+            'name': 'Özel Zaman Çizelgesi Girişi',
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.analytic.line',
+            'view_mode': 'form',
+            'view_id': custom_view_id,
+            'target': 'new',
+            'context': {
+                'default_project_id': self.project_id.id,
+                'default_task_id': self.id,
+                'default_employee_id': self.env.user.employee_id.id,  # Bu satır çalışan ID'sini gönderiyor
+            },
+        }
+
