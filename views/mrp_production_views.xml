@@ -1,30 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <record id="view_mrp_production_form_custom" model="ir.ui.view">
-        <field name="name">mrp.production.form.custom</field>
-        <field name="model">mrp.production</field>
-        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
-        <field name="arch" type="xml">
-            <xpath expr="//notebook/page[last()]" position="after">
-                <page string="Ekstra Bilgiler">
-                    <group string="Ürün Ölçüleri">
-                        <field name="urun_adi"/>
-                        <field name="urun_aciklama"/>
-                        <field name="en"/>
-                        <field name="boy"/>
-                        <field name="uzunluk"/>
-                        <field name="yogunluk"/>
-                        <field name="agirlik"/>
-                        <field name="kalip_id"/>
-                        <field name="sale_id"/>
-                        <field name="project_id"/>
-                        <field name="backorder_sequence"/>
-                        <field name="procurement_total_quant"/>
-                        <field name="proje_mikari"/>
-                    </group>
-                </page>
-            </xpath>
+    <data>
+        <record id="view_mrp_production_form_custom" model="ir.ui.view">
+            <field name="name">mrp.production.form.custom</field>
+            <field name="model">mrp.production</field>
+            <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+            <field name="arch" type="xml">
+                <xpath expr="//notebook/page[last()]" position="after">
+                    <page string="Ekstra Bilgiler">
+                        <group string="Ürün Ölçüleri">
+                            <field name="urun_adi"/>
+                            <field name="urun_aciklama"/>
+                            <field name="en"/>
+                            <field name="boy"/>
+                            <field name="uzunluk"/>
+                            <field name="yogunluk"/>
+                            <field name="agirlik"/>
+                            <field name="kalip_id"/>
+                            <field name="sale_id"/>
+                            <field name="project_id"/>
+                            <field name="backorder_sequence"/>
+                            <field name="procurement_total_quant"/>
+                            <field name="proje_mikari"/>
+                        </group>
+                    </page>
+                </xpath>
+            </field>
+        </record>
 
-        </field>
-    </record>
+
+        <record id="view_mrp_production_tree_custom" model="ir.ui.view">
+            <field name="name">mrp.production.tree.custom</field>
+            <field name="model">mrp.production</field>
+            <field name="inherit_id" ref="mrp.mrp_production_tree_view"/>
+            <field name="arch" type="xml">
+
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="urun_adi"/>
+                    <field name="urun_aciklama"/>
+                    <button name="button_mark_done"
+                            string="Tümünü Üret"
+                            type="object"
+                            icon="fa-cogs"
+                    />
+
+
+
+                </xpath>
+
+
+                <xpath expr="//field[@name='name']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+
+
+                <xpath expr="//field[@name='date_start']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+
+
+                <xpath expr="//field[@name='sale_id']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+
+
+                <xpath expr="//field[@name='partner_id']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+                <xpath expr="//field[@name='origin']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+                <xpath expr="//field[@name='product_id']" position="attributes">
+                    <attribute name="column_invisible">1</attribute>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <record id="mrp_production_search_view_inherit_group_by_project_filter" model="ir.ui.view">
+            <field name="name">mrp.production.search.inherit.group.by.project.filter</field>
+            <field name="model">mrp.production</field>
+            <field name="inherit_id" ref="mrp.view_mrp_production_filter"/>
+            <field name="arch" type="xml">
+                <xpath expr="//group" position="inside">
+                    <filter string="Proje" name="group_by_project_id_from_search" context="{'group_by': 'project_id'}"/>
+                </xpath>
+            </field>
+        </record>
+
+
+
+
+
+    </data>
 </odoo>

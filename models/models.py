@@ -3,6 +3,8 @@
 from odoo import models, fields, api
 import re # Regex modülünü import et
 import logging
+from odoo.exceptions import UserError
+
 
 _logger = logging.getLogger(__name__)
 
@@ -94,42 +96,7 @@ class MrpProduction(models.Model):
         help="Mevcut üretim sırası / Tedarik grubu toplam miktar"
     )
 
-    # --- İlişkili Kayıtlar ---
-    # Odoo standardında bulunan procurement_group_id alanı genellikle yeterlidir.
-    # source_procurement_group_id kaldırılabilir eğer özel bir amacı yoksa.
-    # sale_id ve project_id'nin compute metodları aşağıda düzeltildi.
 
-    # source_procurement_group_id = fields.Many2one(
-    #     comodel_name="procurement.group",
-    #     readonly=True,
-    # )
-    # sale_id = fields.Many2one(
-    #     comodel_name="sale.order",
-    #     string="Sale order",
-    #     readonly=True,
-    #     store=True,
-    #     related="source_procurement_group_id.sale_id",
-    # )
-    # partner_id = fields.Many2one(
-    #     comodel_name="res.partner",
-    #     related="sale_id.partner_id",
-    #     string="Customer",
-    #     store=True,
-    # )
-    # commitment_date = fields.Datetime(
-    #     related="sale_id.commitment_date", string="Commitment Date", store=True
-    # )
-    # client_order_ref = fields.Char(
-    #     related="sale_id.client_order_ref", string="Customer Reference", store=True
-    # )
-
-    # sale_id1 = fields.Many2one(
-    #     comodel_name="sale.order",
-    #     string="Satış Siparişi",
-    #     compute='_compute_sale_id', # compute ile almak daha esnek
-    #     store=True,
-    #     readonly=True,
-    # )
     project_id = fields.Many2one(
         'project.project',
         string="Proje",
