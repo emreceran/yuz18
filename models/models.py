@@ -24,13 +24,13 @@ class MrpProduction(models.Model):
         readonly=False, # Manuel düzenlemeye izin ver
         help="Ürün varyant özelliklerinden veya manuel olarak girilir (Tamsayı)."
     )
-    uzunluk = fields.Integer(
-        string="Uzunluk (cm)", # Etiket güncellendi
-        compute="_compute_adi_aciklama_uzunluk_from_variants",
-        readonly=False, # Manuel düzenlemeye izin ver
-        store=False,
-        help="Özel ürün varyantlarından 'uzunluk: uzunluk:' kalıbına göre çıkarılır (Tamsayı). Manuel olarak değiştirilebilir."
-    )
+    # uzunluk = fields.Integer(
+    #     string="Uzunluk (cm)", # Etiket güncellendi
+    #     compute="_compute_adi_aciklama_uzunluk_from_variants",
+    #     readonly=False, # Manuel düzenlemeye izin ver
+    #     store=False,
+    #     help="Özel ürün varyantlarından 'uzunluk: uzunluk:' kalıbına göre çıkarılır (Tamsayı). Manuel olarak değiştirilebilir."
+    # )
     yogunluk = fields.Float(
         string="Yoğunluk (g/cm³)",
         default=2.5,
@@ -57,17 +57,26 @@ class MrpProduction(models.Model):
     # --- Ürün Bilgileri ---
     urun_adi = fields.Char(
         string="Ürün Adı",
-        compute="_compute_adi_aciklama_uzunluk_from_variants",
-        store=False,
-        readonly=False, # Manuel düzenlemeye izin ver
-        help="Özel ürün varyantlarından 'ürün adı: ürün adı:' kalıbına göre çıkarılır. Manuel olarak değiştirilebilir."
+        compute="_compute_urun_adi",
+        readonly=False,
+        store=True,
+        help="Ürün varyantı içerisindeki 'Ürün Adı' özelliğinden alınır veya manuel olarak girilir."
     )
+
+    uzunluk = fields.Integer(
+        string="Uzunluk (cm)",
+        compute="_compute_aciklama_uzunluk_from_variants",
+        readonly=False,
+        store=False,
+        help="product_description_variants alanındaki 'uzunluk:' ifadesinden çıkarılır. Manuel olarak değiştirilebilir."
+    )
+
     urun_aciklama = fields.Text(
         string="Ürün Açıklama",
-        compute="_compute_adi_aciklama_uzunluk_from_variants",
+        compute="_compute_aciklama_uzunluk_from_variants",
+        readonly=False,
         store=False,
-        readonly=False, # Manuel düzenlemeye izin ver
-        help="Özel ürün varyantlarından 'ürün açıklama: ürün açıklama:' kalıbına göre çıkarılır. Manuel olarak değiştirilebilir."
+        help="product_description_variants alanındaki 'ürün açıklama:' ifadesinden çıkarılır. Manuel olarak değiştirilebilir."
     )
 
     # --- Üretim/Proje Bilgileri ---
@@ -144,44 +153,50 @@ class MrpProduction(models.Model):
             rec.en = en_int
             rec.boy = boy_int
 
-    # Urun Adı, Açıklama ve Uzunluk için (Regex tabanlı)
-    @api.depends('product_description_variants', 'product_id')
-    def _compute_adi_aciklama_uzunluk_from_variants(self):
+    @api.depends('product_id.product_template_attribute_value_ids')
+    def _compute_urun_adi(self):
         """
-        product_description_variants alanından regex kullanarak ürün adı,
-        ürün açıklama ve uzunluk değerlerini çıkarır ve ilgili alanlara atar.
+        Ürünün varyant özelliklerinden 'Ürün Adı' değerini alır.
+        Değer char olarak aktarılır, manuel düzenlemeye izin verilir.
+        """
+        for rec in self:
+            urun_adi_val = ''
+            if rec.product_id and rec.product_id.product_template_attribute_value_ids:
+                for ptav in rec.product_id.product_template_attribute_value_ids:
+                    attr_name = ptav.attribute_id.name.strip().lower()
+                    if attr_name == "ürün adı":
+                        urun_adi_val = ptav.product_attribute_value_id.name
+                        break
+            rec.urun_adi = urun_adi_val
+
+    @api.depends('product_description_variants')
+    def _compute_aciklama_uzunluk_from_variants(self):
+        """
+        product_description_variants alanından regex kullanarak
+        ürün açıklaması ve uzunluk değerlerini çıkarır.
         Uzunluk tamsayı olarak atanır. Değerler manuel olarak değiştirilebilir.
         """
-        # Regex'lerde kullanılan anahtarları kontrol edin: 'ürün adıx' mi 'ürün adı' mı?
-        # Kodunuzdaki pattern'lere göre 'x' olmadan kullanıyorum:
-        pattern_adi = re.compile(r"ürün adı:\s*ürün adı:\s*(.*?)\s*(?:ürün açıklama:|uzunluk:|$)", re.IGNORECASE)
         pattern_aciklama = re.compile(r"ürün açıklama:\s*ürün açıklama:\s*(.*?)\s*(?:uzunluk:|$)", re.IGNORECASE)
         pattern_uzunluk = re.compile(r"uzunluk:\s*uzunluk:\s*(\d+(?:[.,]\d+)?)\b", re.IGNORECASE)
 
         for rec in self:
-            source_string = rec.product_description_variants
-            extracted_adi = ""
+            source_string = rec.product_description_variants or ""
             extracted_aciklama = ""
             uzunluk_int = 0
 
-            if source_string:
-                # Ürün Adı
-                match_adi = pattern_adi.search(source_string)
-                if match_adi: extracted_adi = match_adi.group(1).strip()
-                # Ürün Açıklama
-                match_aciklama = pattern_aciklama.search(source_string)
-                if match_aciklama: extracted_aciklama = match_aciklama.group(1).strip()
-                # Uzunluk
-                match_uzunluk = pattern_uzunluk.search(source_string)
-                if match_uzunluk:
+            match_aciklama = pattern_aciklama.search(source_string)
+            if match_aciklama:
+                extracted_aciklama = match_aciklama.group(1).strip()
+
+            match_uzunluk = pattern_uzunluk.search(source_string)
+            if match_uzunluk:
+                try:
                     extracted_uzunluk_str = match_uzunluk.group(1)
-                    try: uzunluk_int = int(float(extracted_uzunluk_str.replace(',', '.')))
-                    except ValueError: uzunluk_int = 0; _logger.warning(f"Uzunluk ('{extracted_uzunluk_str}') çevrilemedi.")
+                    uzunluk_int = int(float(extracted_uzunluk_str.replace(',', '.')))
+                except ValueError:
+                    uzunluk_int = 0
+                    _logger.warning(f"Uzunluk ('{extracted_uzunluk_str}') çevrilemedi.")
 
-            # Fallback for urun_adi
-            if not extracted_adi and rec.product_id: extracted_adi = rec.product_id.display_name
-
-            rec.urun_adi = extracted_adi
             rec.urun_aciklama = extracted_aciklama
             rec.uzunluk = uzunluk_int
 
