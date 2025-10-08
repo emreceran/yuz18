@@ -27,6 +27,7 @@ Long description of module's purpose
         'views/templates.xml',
         'views/report.xml',
         'views/mrp_production_views.xml',
+        # 'views/work_order_views.xml',
         # 'views/task.xml',
 
     ],

@@ -289,3 +289,6 @@ class MrpProduction(models.Model):
             else:
                 rec.project_id = False
 
+
+
+    
