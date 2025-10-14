@@ -291,4 +291,9 @@ class MrpProduction(models.Model):
 
 
 
-    
+class ProductTemplateCustom(models.Model):
+    _inherit="product.template"
+    urun_kodu = fields.Char(
+        string="Ürün Kodu",
+        help="Ürün seri numarası içerisindeki değer."
+    )
