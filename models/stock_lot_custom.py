@@ -10,42 +10,46 @@ _logger = logging.getLogger(__name__)
 class StockLotCustom(models.Model):
     _inherit = 'stock.lot'
 
-    # 1. Hesaplanan Alanı Tanımla
+    # ADIM 1: MRP KAYIT BİLGİSİNİ HESAPLA (Lot'un adını kullanarak)
+    mrp_producing_id = fields.Many2one(
+        'mrp.production',
+        string='Üretim Emri',
+        compute='_compute_mrp_producing_id',
+        store=True # Veritabanında sakla
+    )
+    
+    # ADIM 2: PROJE BİLGİSİNİ BU MRP KAYDINDAN İLİŞKİLENDİR
+    # BU ALAN İÇİN ARTIK COMPUTE METODU YAZILMAZ!
     project_id = fields.Many2one(
         'project.project',
+        related='mrp_producing_id.project_id', 
+        store=True,
         string='Proje',
-        compute='_compute_project_id',
-        store=True, # Projenin veritabanında saklanmasını sağlar (filtreleme için gerekli)
-        readonly=True # Kullanıcı tarafından değiştirilmesini engeller
+        readonly=True # İlişkili alanlar genellikle salt okunur olmalıdır
     )
-
-    # 2. Hesaplama Metodu
+    
+    # BU METOT SADECE mrp_producing_id alanını hesaplamalıdır!
     @api.depends('name')
-    def _compute_project_id(self):
-        # 1. Seri/Parti (stock.lot) kayıtlarının adlarını al
+    def _compute_mrp_producing_id(self):
         lot_names = self.mapped('name')
         
-        # 2. mrp.production'da bu lot isimlerine sahip (lot_producing_id) kayıtları bul
-        #    Burada lot_producing_id'nin tipinin stock.lot olduğunu varsayıyoruz.
+        # 1. Sorguyu Lot ID'si ile yapmak daha temiz/hızlıdır, ancak şimdilik lot adını kullanalım.
         mrp_productions = self.env['mrp.production'].search([
-            ('lot_producing_id.name', 'in', lot_names),
-            ('project_id', '!=', False) # Sadece Projesi tanımlı olanları al
+            ('lot_producing_id.name', 'in', lot_names)
+            # ('project_id', '!=', False) filtrelemesi gereksiz, eşleşme yapıldıktan sonra proje kontrol edilebilir.
         ])
         
-        # 3. Lot adına göre MRP üretim emirlerini eşleştir (Sözlük oluştur)
         mrp_map = {}
         for mrp in mrp_productions:
             lot_name = mrp.lot_producing_id.name
-            # Eğer bir lot birden fazla MRP'ye atanmışsa (ki olmamalı), ilkini al
+            # Projenin atanıp atanmadığı önemli değil, MRP'yi eşleştirmeliyiz
             if lot_name not in mrp_map:
-                mrp_map[lot_name] = mrp.project_id.id
+                mrp_map[lot_name] = mrp.id # MRP ID'sini sakla
 
         # 4. Alanı Güncelle
         for lot in self:
-            # Kendi lot ismini (name) kullanarak eşleştirme sözlüğünden proje ID'yi çek
-            project_id = mrp_map.get(lot.name, False)
-            lot.project_id = project_id
-
+            mrp_id = mrp_map.get(lot.name, False)
+            lot.mrp_producing_id = mrp_id
 
     @api.model
     def _get_next_serial(self, company, product, sale_order_ref, project_id):
@@ -123,6 +127,34 @@ class StockLotCustom(models.Model):
 
 class MrpProductionCustom(models.Model):
     _inherit = 'mrp.production'
+
+
+    def write(self, vals):
+        # 1. Değişebilecek Lot'ları önceden yakala
+        old_lot = self.mapped('lot_producing_id')
+        
+        # 2. Orijinal write işlemini çalıştır
+        res = super().write(vals)
+
+        # 3. Yeni Lot'u yakala
+        new_lot = self.mapped('lot_producing_id')
+
+        # 4. Hem eski hem de yeni Lot'lar üzerinde ilgili compute metodu tetikle
+        # compute metodu mrp_producing_id olduğu için bunu çağırıyoruz.
+        (old_lot | new_lot)._compute_mrp_producing_id()
+        
+        return res 
+        
+    # Oluşturma anında da tetikleme eklenmeli
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for record in records:
+            if record.lot_producing_id:
+                record.lot_producing_id._compute_mrp_producing_id()
+        return records
+
+    # Create metodu için de benzer bir tetikleme ekleyin.
 
     def _prepare_stock_lot_values(self):
         self.ensure_one()
