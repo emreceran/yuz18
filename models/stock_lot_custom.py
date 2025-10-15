@@ -20,6 +20,7 @@ class StockLotCustom(models.Model):
     )
 
     # 2. Hesaplama Metodu
+    @api.depends('name')
     def _compute_project_id(self):
         # 1. Seri/Parti (stock.lot) kayıtlarının adlarını al
         lot_names = self.mapped('name')
