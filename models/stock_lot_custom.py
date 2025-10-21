@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
+from collections import defaultdict, deque
+from odoo.tools import OrderedSet
 import logging
 import re  # Regex için eklendi
 
@@ -55,20 +57,6 @@ class StockLotCustom(models.Model):
     def _get_next_serial(self, company, product, sale_order_ref, project_id):
         """Return the next serial number to be attributed to the product."""
 
-        print("**")
-        print("**")
-        print("**")
-        print(project_id.name)
-        print(product.name)
-        print(product.product_tmpl_id)
-        print(product.product_tmpl_id.name)
-        print(product.product_tmpl_id.urun_kodu)
-        print("**")
-        print("**")
-        print("**")
-        
-        
-
         if product.tracking != "none":
 
             code = product.product_tmpl_id.urun_kodu
@@ -83,15 +71,11 @@ class StockLotCustom(models.Model):
 
             # filtered = candidates.filtered(lambda lot: lot.name[4:7] == last_three)
 
-            for lot in candidates:
-                print( lot.name + "----" + str(lot.create_date))       
            
             # En son oluşturulan lotu bul (id'ye göre)
             if candidates:
                 last_lot = candidates.sorted(key=lambda lot: lot.id)[-1]  # en son oluşturulan
                 next_serial = self.generate_lot_names(last_lot.name, 2, code, sale_last_three)[1]['lot_name']
-                print(next_serial)
-                print("next_serial")
                 return next_serial
             else:
                 next_serial = self.generate_lot_names("00000000000", 2, code, sale_last_three)[1]['lot_name']
@@ -104,11 +88,6 @@ class StockLotCustom(models.Model):
         """Generate structured lot names: YYPPSSSCCCC → year, saleorder, product=ürün kodu, counter."""
         if len(first_lot) < 11:
             raise UserError("Lot format geçersiz. En az 11 karakter bekleniyor.")
-
-
-        print("sale_order")
-        print(sale_last_three)
-        print("sale_order")
 
         # Güncel yıl al (son iki hane)
         year = str(fields.Date.today().year % 100).zfill(2)
@@ -144,7 +123,7 @@ class MrpProductionCustom(models.Model):
         (old_lot | new_lot)._compute_mrp_producing_id()
         
         return res 
-        
+
     # Oluşturma anında da tetikleme eklenmeli
     @api.model_create_multi
     def create(self, vals_list):
@@ -167,6 +146,11 @@ class MrpProductionCustom(models.Model):
             'name': name,  
         }
 
+    def _auto_production_checks(self):
+        self.ensure_one()
+        return all(p.tracking == 'none' for p in self.move_raw_ids.product_id | self.move_finished_ids.product_id)\
+            or (self.product_id.tracking != 'serial' and self.reservation_state in ('assigned', 'confirmed', 'waiting'))
+
 class MrpBatchProduceCustom(models.TransientModel):
     _inherit = 'mrp.batch.produce'
 
@@ -182,6 +166,19 @@ class MrpBatchProduceCustom(models.TransientModel):
             if not wizard.lot_name:
                 wizard.lot_name = self.env['stock.lot']._get_next_serial(self.production_id.company_id, self.production_id.product_id, sale_order_ref, project_id)
 
+    def action_mass_produce(self):
+        self.ensure_one()
+        self._check_company()
+        if self.state not in ['draft', 'confirmed', 'progress', 'to_close'] or\
+                self._auto_production_checks():
+            return
+        action = self.env["ir.actions.actions"]._for_xml_id("mrp.action_mrp_batch_produce")
+        action['context'] = {
+            'default_production_id': self.id,
+        }
+        return action
+   
+   
     def action_generate_production_text(self):
         self.ensure_one()
         if not self.lot_name:
@@ -196,5 +193,5 @@ class MrpBatchProduceCustom(models.TransientModel):
         action = self.env["ir.actions.actions"]._for_xml_id("mrp.action_mrp_batch_produce")
         action['res_id'] = self.id
         return action
-
-
+    
+    
