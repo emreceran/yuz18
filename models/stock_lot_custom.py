@@ -148,8 +148,9 @@ class MrpProductionCustom(models.Model):
 
     def _auto_production_checks(self):
         self.ensure_one()
+        print(self.lot_producing_id.id)
         return all(p.tracking == 'none' for p in self.move_raw_ids.product_id | self.move_finished_ids.product_id)\
-            or (self.product_id.tracking != 'serial' and self.reservation_state in ('assigned', 'confirmed', 'waiting'))
+            or (self.product_uom_qty == 1 and self.lot_producing_id.id) or (self.product_id.tracking != 'serial' and self.reservation_state in ('assigned', 'confirmed', 'waiting'))
 
 class MrpBatchProduceCustom(models.TransientModel):
     _inherit = 'mrp.batch.produce'
