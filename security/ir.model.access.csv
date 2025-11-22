@@ -1,2 +1,1 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_yuz18_yuz18,yuz18.yuz18,model_yuz18_yuz18,base.group_user,1,1,1,1

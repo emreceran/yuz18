@@ -1,0 +1,66 @@
+<odoo>
+    <template id="report_planning_template">
+        <t t-call="web.html_container">
+            <t t-call="web.external_layout">
+                <div class="page">
+                    <!-- Başlık -->
+                    <div class="text-center mt-4 mb-4">
+                        <h2 t-esc="report_title"/>
+                    </div>
+
+                    <!-- Work Center Döngüsü -->
+                    <t t-foreach="grouped_data" t-as="wc_group">
+                        
+                        <div class="mt-4 p-2" style="background-color: #f0f0f0; border: 1px solid #ccc;">
+                            <strong style="font-size: 18px;" t-esc="wc_group['wc_name']"/>
+                        </div>
+
+                        <!-- Sabah Kurulum Uyarısı (Varsa) -->
+                        <t t-if="wc_group['morning_alert']">
+                            <div t-attf-class="alert mt-1 mb-1 p-1 #{wc_group['alert_class']}" role="alert" style="font-size:14px;">
+                                <t t-esc="wc_group['morning_alert']"/>
+                            </div>
+                        </t>
+
+                        <!-- Tablo -->
+                        <table class="table table-sm table-bordered mt-2">
+                            <thead>
+                                <tr class="bg-light">
+                                    <th style="width: 15%">Üretim Emri</th>
+                                    <th style="width: 30%">Ürün</th>
+                                    <th style="width: 15%">Saat</th>
+                                    <th style="width: 10%">Durum</th>
+                                    <th style="width: 10%">Miktar</th>
+                                    <th style="width: 20%">Uyarı / Not</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="wc_group['lines']" t-as="line" t-att-class="line['row_class']">
+                                    <td><span t-esc="line['mo_name']"/></td>
+                                    <td><span t-esc="line['product']"/></td>
+                                    <!-- Tarih formatlama -->
+                                    <td><span t-esc="line['date']" t-options='{"widget": "datetime", "format": "HH:mm"}'/></td>
+                                    <td><span t-esc="line['state']"/></td>
+                                    <td><span t-esc="line['qty']"/></td>
+                                    <td>
+                                        <t t-if="line['change_alert']">
+                                            <strong class="text-danger" t-esc="line['change_alert']"/>
+                                        </t>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <!-- Sayfa sonu kontrolü (gerekirse page break ekleyebilirsin) -->
+                        <br/>
+                    </t>
+                    
+                    <t t-if="not grouped_data">
+                        <div class="alert alert-info mt-5 text-center">
+                            Seçilen tarih için planlanmış üretim bulunamadı.
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>

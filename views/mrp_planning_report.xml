@@ -1,0 +1,15 @@
+<odoo>
+    <data>
+        <!-- Rapor Tanımı -->
+        <record id="action_report_mrp_planning" model="ir.actions.report">
+            <field name="name">Üretim Planlama Raporu</field>
+            <field name="model">mrp.production</field>
+            <field name="report_type">qweb-html</field>
+            <field name="report_name">yuz18.report_planning_template</field>
+            <field name="report_file">yuz18.report_planning_template</field>
+            <field name="print_report_name">'Uretim_Plani'</field>
+            <field name="binding_model_id" ref="model_mrp_production"/>
+            <field name="binding_type">report</field>
+        </record>
+    </data>
+</odoo>

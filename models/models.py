@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from datetime import datetime, time, timedelta
+
+import pytz
 from odoo import models, fields, api
 import re # Regex modülünü import et
 import logging
@@ -10,6 +13,12 @@ _logger = logging.getLogger(__name__)
 
 class MrpProduction(models.Model):
     _inherit = "mrp.production"
+
+    # Üretim Emri Ürününün İş Merkezi listesine erişim sağlamak için
+    # product_tmpl_allowed_workcenter_ids = fields.Many2many(
+    #     related='product_id.allowed_workcenter_ids',
+    #     readonly=True
+    # )
 
     # --- Boyutlar ve İlgili Alanlar ---
     en = fields.Integer( # Integer yapıldı
@@ -290,10 +299,10 @@ class MrpProduction(models.Model):
                 rec.project_id = False
 
 
-
 class ProductTemplateCustom(models.Model):
     _inherit="product.template"
     urun_kodu = fields.Char(
         string="Ürün Kodu",
         help="Ürün seri numarası içerisindeki değer."
     )
+

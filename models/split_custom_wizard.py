@@ -33,7 +33,7 @@ class MrpProductionSplitCustomWizard(models.TransientModel):
             # 'sale_order_id': mo.sale_order_id.id if hasattr(mo, 'sale_order_id') and mo.sale_order_id else False,
             'priority': mo.priority,
             'custom_description': mo.custom_description,
-            # 'date_planned_start': mo.date_planned_start,
+            # 'date_start': mo.date_start,
             # 'date_planned_finished': mo.date_planned_finished,
         }
 
@@ -56,3 +56,4 @@ class MrpProductionSplitCustomWizard(models.TransientModel):
             'domain': [('id', 'in', [mo1.id, mo2.id])],
             'view_mode': 'list,form',
         }
+

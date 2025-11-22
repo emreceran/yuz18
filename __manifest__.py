@@ -22,12 +22,14 @@ Long description of module's purpose
 
     # always loaded
     'data': [
-        # 'security/ir.model.access.csv',
+        'security/ir.model.access.csv',
         'views/views.xml',
+        'views/work_order_views.xml',
         'views/templates.xml',
         'views/report.xml',
         'views/mrp_production_views.xml',
-        # 'views/work_order_views.xml',
+        'views/mrp_planning_report.xml',
+        'views/mrp_planning_report_template.xml',
         # 'views/task.xml',
 
     ],

@@ -91,7 +91,40 @@
 
 
 
+        <record id="view_mrp_production_workorder_tree_filter_inherit" model="ir.ui.view">
+            <field name="name">mrp.production.workorder.tree.editable.filter.inherit</field>
+            <field name="model">mrp.workorder</field>
+            <field name="inherit_id" ref="mrp.mrp_production_workorder_tree_editable_view_mo_form"/> 
+            <field name="arch" type="xml">
+                
+                <xpath expr="//field[@name='workcenter_id']" position="before">
+                    <field name="product_allowed_workcenter_ids"/>
+                </xpath>
+                
+                <xpath expr="//field[@name='workcenter_id']" position="attributes">
+                    <attribute name="domain">
+                        allowed_workcenter_domain
+                    </attribute>
+                </xpath>
 
-
+                
+            </field>
+        </record>
+        <record id="product_template_form_view_add_allowed_wc" model="ir.ui.view">
+            <field name="name">product.template.form.add.allowed.wc</field>
+            <field name="model">product.template</field>
+            
+            <field name="inherit_id" ref="product.product_template_form_view"/> 
+            
+            <field name="arch" type="xml">
+                
+                <xpath expr="//field[@name='categ_id']" position="after">
+                    <field name="allowed_workcenter_ids" 
+                        widget="many2many_tags" 
+                        options="{'no_create_edit': True}"
+                        groups="mrp.group_mrp_user"/> </xpath>
+                
+            </field>
+        </record>
     </data>
 </odoo>
