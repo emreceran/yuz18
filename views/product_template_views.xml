@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_view_inherit_yuz18" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.yuz18</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='options']" position="inside">
+                <span class="d-inline-block">
+                    <field name="x_check_strand_rules"/>
+                    <label for="x_check_strand_rules"/>
+                </span>
+            </xpath>
+        </field>
+    </record>
+</odoo>

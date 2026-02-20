@@ -28,7 +28,7 @@
                                 <tr class="bg-light">
                                     <th style="width: 15%">Üretim Emri</th>
                                     <th style="width: 30%">Ürün</th>
-                                    <th style="width: 15%">Saat</th>
+                                    <th style="width: 15%">Proje</th>
                                     <th style="width: 10%">Durum</th>
                                     <th style="width: 10%">Miktar</th>
                                     <th style="width: 20%">Uyarı / Not</th>
@@ -38,8 +38,8 @@
                                 <tr t-foreach="wc_group['lines']" t-as="line" t-att-class="line['row_class']">
                                     <td><span t-esc="line['mo_name']"/></td>
                                     <td><span t-esc="line['product']"/></td>
-                                    <!-- Tarih formatlama -->
-                                    <td><span t-esc="line['date']" t-options='{"widget": "datetime", "format": "HH:mm"}'/></td>
+                                    <!-- Proje Adı -->
+                                    <td><span t-esc="line['project']"/></td>
                                     <td><span t-esc="line['state']"/></td>
                                     <td><span t-esc="line['qty']"/></td>
                                     <td>

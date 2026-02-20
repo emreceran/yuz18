@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Kalıp Grubu Liste Görünümü (Her tab içinde gösterilecek satırlar) -->
+    <record id="view_mrp_batch_planning_workcenter_group_line_list" model="ir.ui.view">
+        <field name="name">mrp.batch.planning.wizard.line.inline</field>
+        <field name="model">mrp.batch.planning.wizard.line</field>
+        <field name="arch" type="xml">
+            <list string="Planlama Satırları" editable="bottom" decoration-danger="capacity_exceeded == True" default_order="sequence">
+                <field name="sequence" widget="handle"/>
+                <field name="production_ids" widget="many2many_tags" options="{'no_create': True}" string="Üretim Emirleri"/>
+                <field name="total_length_usage" string="Uzunluk (cm)" readonly="1"/>
+                <field name="capacity_exceeded" column_invisible="1"/>
+                <field name="time_mode" string="Döküm Sayısı" width="100px"/>
+                <field name="date_start" string="Başlangıç" readonly="1"/>
+                <field name="date_finished" string="Bitiş" readonly="1"/>
+                <field name="workcenter_id" column_invisible="1"/>
+                <field name="group_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Kalıp Grubu Form Görünümü (Notebook Page İçeriği) -->
+    <record id="view_mrp_batch_planning_workcenter_group_form" model="ir.ui.view">
+        <field name="name">mrp.batch.planning.workcenter.group.form</field>
+        <field name="model">mrp.batch.planning.workcenter.group</field>
+        <field name="arch" type="xml">
+            <form string="Kalıp Grubu">
+                <group>
+                    <group>
+                        <field name="workcenter_id" readonly="1"/>
+                        <field name="date_start"/>
+                    </group>
+                    <group>
+                        <field name="production_count" readonly="1"/>
+                        <field name="workcenter_capacity" readonly="1"/>
+                        <field name="initial_mo_ids" widget="many2many_tags" readonly="1"/>
+                    </group>
+                </group>
+                <separator string="Planlama Satırları"/>
+                <field name="line_ids" context="{'default_workcenter_id': workcenter_id}">
+                    <list editable="bottom" decoration-danger="capacity_exceeded == True" default_order="sequence">
+                        <field name="sequence" widget="handle"/>
+                        <field name="production_ids" widget="many2many_tags" options="{'no_create': True}" string="Üretim Emirleri"/>
+                        <field name="total_length_usage" string="Uzunluk (cm)" readonly="1"/>
+                        <field name="capacity_status" string="Durum" readonly="1"/>
+                        <field name="capacity_exceeded" column_invisible="1"/>
+                        <field name="line_capacity" column_invisible="1"/>
+                        <field name="group_id" column_invisible="1"/>
+                        <field name="workcenter_id" column_invisible="1"/>
+                        <field name="time_mode" string="Döküm Sayısı" width="100px"/>
+                        <field name="date_start" string="Başlangıç" readonly="1"/>
+                        <field name="date_finished" string="Bitiş" readonly="1"/>
+                    </list>
+                </field>
+            </form>
+        </field>
+    </record>
+</odoo>

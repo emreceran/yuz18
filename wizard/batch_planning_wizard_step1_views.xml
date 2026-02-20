@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Step 1 Wizard Form View -->
+    <record id="view_mrp_batch_planning_wizard_step1_form" model="ir.ui.view">
+        <field name="name">mrp.batch.planning.wizard.step1.form</field>
+        <field name="model">mrp.batch.planning.wizard.step1</field>
+        <field name="arch" type="xml">
+            <form string="Toplu Üretim Planlama - Ürün Seçimi">
+                <sheet>
+                    <group>
+                        <field name="group_line_ids" nolabel="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_next_step" string="Planlamaya Geç →" 
+                            type="object" class="btn-primary"/>
+                    <button string="İptal" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action for Step 1 Wizard -->
+    <record id="action_mrp_batch_planning_wizard_step1" model="ir.actions.act_window">
+        <field name="name">Toplu Planla (Batch)</field>
+        <field name="res_model">mrp.batch.planning.wizard.step1</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="mrp.model_mrp_production"/>
+        <field name="binding_view_types">list</field>
+    </record>
+</odoo>

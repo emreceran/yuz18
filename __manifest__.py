@@ -18,7 +18,7 @@ Long description of module's purpose
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'mrp', 'sale_stock', 'sale_project', 'mrp_sale_info','sale_management', 'project',  'sale_project'],
+    'depends': ['base', 'mrp', 'sale_stock', 'sale_project', 'mrp_sale_info', 'sale_management', 'project'],
 
     # always loaded
     'data': [
@@ -30,6 +30,13 @@ Long description of module's purpose
         'views/mrp_production_views.xml',
         'views/mrp_planning_report.xml',
         'views/mrp_planning_report_template.xml',
+        'views/mrp_workcenter_views.xml',
+        'views/product_template_views.xml',
+        'wizard/product_planning_group_views.xml',
+        'wizard/batch_planning_wizard_step1_views.xml',
+        'wizard/batch_planning_workcenter_group_views.xml',
+        'wizard/batch_planning_wizard_views.xml',
+
         # 'views/task.xml',
 
     ],

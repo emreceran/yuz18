@@ -21,17 +21,21 @@ class MrpProduction(models.Model):
     # )
 
     # --- Boyutlar ve İlgili Alanlar ---
-    en = fields.Integer( # Integer yapıldı
+    en = fields.Float(
         string="En (cm)",
-        compute="_compute_en_boy", # Birleştirilmiş compute
-        readonly=False, # Manuel düzenlemeye izin ver
-        help="Ürün varyant özelliklerinden veya manuel olarak girilir (Tamsayı)."
+        compute="_compute_en_boy",
+        readonly=False,
+        store=True,
+        digits=(10, 2),
+        help="Ürün varyant özelliklerinden veya manuel olarak girilir (Ondalıklı sayı, örn: 17.5)."
     )
-    boy = fields.Integer( # Integer yapıldı
+    boy = fields.Float(
         string="Boy (cm)",
-        compute="_compute_en_boy", # Birleştirilmiş compute
-        readonly=False, # Manuel düzenlemeye izin ver
-        help="Ürün varyant özelliklerinden veya manuel olarak girilir (Tamsayı)."
+        compute="_compute_en_boy",
+        readonly=False,
+        store=True,
+        digits=(10, 2),
+        help="Ürün varyant özelliklerinden veya manuel olarak girilir (Ondalıklı sayı, örn: 30.5)."
     )
     # uzunluk = fields.Integer(
     #     string="Uzunluk (cm)", # Etiket güncellendi
@@ -50,7 +54,7 @@ class MrpProduction(models.Model):
     hacim = fields.Float(
         string="Hacim (cm³)", # Etiket güncellendi
         compute="_compute_hacim",
-        # store=True, # Hesaplanan değer saklansın
+        store=True, # Hesaplanan değer saklansın
         readonly=True, # Hesaplanan alan
         help="Hesaplanan hacim: En(cm) x Boy(cm) x Uzunluk(cm)",
         digits = (16, 3)  # Gösterim hassasiyeti
@@ -76,7 +80,7 @@ class MrpProduction(models.Model):
         string="Uzunluk (cm)",
         compute="_compute_aciklama_uzunluk_from_variants",
         readonly=False,
-        store=False,
+        store=True,
         help="product_description_variants alanındaki 'uzunluk:' ifadesinden çıkarılır. Manuel olarak değiştirilebilir."
     )
 
@@ -84,7 +88,7 @@ class MrpProduction(models.Model):
         string="Ürün Açıklama",
         compute="_compute_aciklama_uzunluk_from_variants",
         readonly=False,
-        store=False,
+        store=True,
         help="product_description_variants alanındaki 'ürün açıklama:' ifadesinden çıkarılır. Manuel olarak değiştirilebilir."
     )
 
@@ -122,13 +126,11 @@ class MrpProduction(models.Model):
         store=True,
         # readonly=False, # Manuel değiştirilebilir olması istendi
     )
+    
+    # Planlama Durumu için
+    # NOT: Odoo'nun standart is_planned field'ı kullanılıyor
+    # workorder_ids.date_start VE workorder_ids.date_finished kontrolü
 
-    # === COMPUTE METODLARI ===
-
-    # En ve Boy için (Varsayılan Değer Hesaplama)
-    # Not: Eğer En/Boy da product_description_variants'dan geliyorsa, bu metod yerine
-    # _compute_adi_aciklama_uzunluk_from_variants metoduna eklenmelidir.
-    # Bu kod, En/Boy'un ürünün variant attribute'larından geldiğini varsayar.
     @api.depends('product_id.product_template_attribute_value_ids')
     def _compute_en_boy(self):
         """
@@ -139,28 +141,28 @@ class MrpProduction(models.Model):
             # Eğer alanlar zaten manuel olarak doldurulmuşsa üzerine yazmamak iyi olabilir,
             # ama compute metodları genellikle bağımlılık değiştiğinde çalışır.
             # Şimdilik her çalıştığında hesaplayacak şekilde bırakalım.
-            en_int, boy_int = 0, 0
+            en_val, boy_val = 0.0, 0.0
             if rec.product_id and rec.product_id.product_template_attribute_value_ids:
                 for ptav in rec.product_id.product_template_attribute_value_ids:
                     attr_name = ptav.attribute_id.name.strip().lower()
                     val_name = ptav.product_attribute_value_id.name
-                    val_int = 0
+                    val_float = 0.0
                     try:
-                        # Değeri sayıya çevirmeye çalış (Örn: "10 cm" -> 10)
-                        numeric_val_str = ''.join(filter(str.isdigit or str == '.', val_name))
+                        # Değeri sayıya çevirmeye çalış (Örn: "17.5 cm" → 17.5)
+                        # Rakamları ve nokta karakterini koru
+                        numeric_val_str = ''.join(c for c in val_name if c.isdigit() or c == '.')
                         if numeric_val_str:
-                            # Önce float'a çevirip sonra int'e çevirmek daha güvenli
-                            val_int = int(float(numeric_val_str))
+                            val_float = float(numeric_val_str)
                     except ValueError:
-                        val_int = 0
-                        _logger.warning(f"Özellik ('{attr_name}':'{val_name}') tamsayıya çevrilemedi (Ürün: {rec.product_id.display_name})")
+                        val_float = 0.0
+                        _logger.warning(f"Özellik ('{attr_name}':'{val_name}') sayıya çevrilemedi (Ürün: {rec.product_id.display_name})")
 
                     if attr_name == "en":
-                        en_int = val_int
+                        en_val = val_float
                     elif attr_name == "boy":
-                        boy_int = val_int
-            rec.en = en_int
-            rec.boy = boy_int
+                        boy_val = val_float
+            rec.en = en_val
+            rec.boy = boy_val
 
     @api.depends('product_id.product_template_attribute_value_ids')
     def _compute_urun_adi(self):
@@ -299,10 +301,34 @@ class MrpProduction(models.Model):
                 rec.project_id = False
 
 
+    def action_open_batch_planning(self):
+        """Seçili MO'lar için custom batch planning wizard'ını aç."""
+        return {
+            'name': 'Toplu Planla (Batch)',
+            'type': 'ir.actions.act_window',
+            'res_model': 'mrp.batch.planning.wizard.step1',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'active_ids': self.ids,
+                'active_model': 'mrp.production',
+            },
+        }
+
+
+class MrpWorkcenter(models.Model):
+    _inherit = 'mrp.workcenter'
+
+    x_width_capacity = fields.Float(string="Width Capacity")
+    x_height_capacity = fields.Float(string="Height Capacity")
+    x_max_length_capacity = fields.Float(string="Max Length Capacity")
+
+
 class ProductTemplateCustom(models.Model):
     _inherit="product.template"
     urun_kodu = fields.Char(
         string="Ürün Kodu",
         help="Ürün seri numarası içerisindeki değer."
     )
+    x_check_strand_rules = fields.Boolean(string="Çap/En-Boy Kontrolü Yapılsın mı?")
 

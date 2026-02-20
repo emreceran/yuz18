@@ -1,1 +1,7 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mrp_batch_planning_wizard,mrp.batch.planning.wizard,model_mrp_batch_planning_wizard,mrp.group_mrp_user,1,1,1,1
+access_mrp_batch_planning_wizard_line,mrp.batch.planning.wizard.line,model_mrp_batch_planning_wizard_line,mrp.group_mrp_user,1,1,1,1
+access_mrp_batch_planning_wizard_step1,mrp.batch.planning.wizard.step1,model_mrp_batch_planning_wizard_step1,mrp.group_mrp_user,1,1,1,1
+access_product_planning_group,product.planning.group,model_product_planning_group,mrp.group_mrp_user,1,1,1,1
+access_mrp_batch_planning_workcenter_group,access_mrp_batch_planning_workcenter_group,model_mrp_batch_planning_workcenter_group,mrp.group_mrp_user,1,1,1,1
+access_step2_product_group,step2.product.group,model_step2_product_group,mrp.group_mrp_user,1,1,1,1

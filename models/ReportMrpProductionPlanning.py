@@ -93,13 +93,20 @@ class ReportMrpProductionPlanning(models.AbstractModel):
                 row_class = 'table-warning'
             
             # Satırı ekle
-            # workorder state seçimi bazen türkçe gelmeyebilir, manuel map edelim garanti olsun
-            state_labels = dict(wo._fields['state'].selection)
-            state_display = state_labels.get(wo.state, wo.state)
+            # Durum etiketi özelleştirme
+            if wo.state in ['done', 'progress']:
+                state_display = "Döküldü"
+            else:
+                state_display = "Dökülmedi"
+
+            product_name = wo.product_id.display_name
+            if wo.production_id.lot_producing_id:
+                product_name += f" ({wo.production_id.lot_producing_id.name})"
 
             group['lines'].append({
                 'mo_name': wo.production_id.name,
-                'product': wo.product_id.display_name,
+                'product': product_name,
+                'project': wo.production_id.project_id.name, # Proje Adı
                 'date': wo.date_start, # Template bunu zaten kullanıcının saatine çevirir
                 'state': state_display,
                 'qty': wo.qty_production,

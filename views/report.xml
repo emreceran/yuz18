@@ -8,10 +8,10 @@
         <field name="format">custom</field>
         <field name="page_height">100</field>  <!-- Yükseklik 100mm -->
         <field name="page_width">100</field>   <!-- Genişlik 100mm -->
-        <field name="margin_top">1</field>
-        <field name="margin_bottom">1</field>
-        <field name="margin_left">1</field>
-        <field name="margin_right">1</field>
+        <field name="margin_top">5</field>
+        <field name="margin_bottom">5</field>
+        <field name="margin_left">5</field>
+        <field name="margin_right">5</field>
         <field name="orientation">Portrait</field>
         <field name="dpi">90</field>
     </record>
@@ -38,7 +38,7 @@
 
         <t t-foreach="docs" t-as="uretim">
             <t t-set="move_line" t-value="uretim.move_finished_ids.move_line_ids.filtered(lambda ml: ml.move_id.production_id.state == 'done' and ml.state == 'done' and ml.quantity)"/>
-            <div style="width: 100mm; font-family: Arial, sans-serif;">
+            <div style="width: 100mm; font-family: Arial, sans-serif; padding: 3mm; page-break-after: always;">
 
                 <table class="table table-sm table-borderless" style="width: 100%; font-size: 14px; margin-bottom: 10px; table-layout: fixed;">
                     <tbody>
@@ -89,15 +89,15 @@
                         <tr>
                             <td style="width: 20%; text-align: center; vertical-align: center; padding-right: 5px;">
                                  <img src="/yuz18/static/src/img/ylogo.jpeg"
-                                      style="max-width: 30mm; max-height: 50px;" />
+                                      style="max-width: 40mm; max-height: 70px;" />
                             </td>
 
                             <td style="width: 100%; vertical-align: top; position: relative;">
 
                                 <div style="width:95%;  margin: 0 auto;"> <t t-if="move_line" t-translation="off">
                                         <t t-if="move_line.product_id.tracking != 'none' and (move_line.lot_name or move_line.lot_id)">
-                                            <div t-field="move_line.lot_name or move_line.lot_id.name" t-options="{'widget': 'barcode', 'img_style': 'width:120%;'}" />
-                                            <div class="o_label_4x12 text-center" style="width:120%;font-size: 11px;"><span t-out="move_line.lot_name or move_line.lot_id.name"/></div>
+                                            <div t-field="move_line.lot_name or move_line.lot_id.name" t-options="{'widget': 'barcode', 'img_style': 'width:140%;'}" />
+                                            <div class="o_label_4x12 text-center" style="width:140%;font-size: 13px;"><span t-out="move_line.lot_name or move_line.lot_id.name"/></div>
                                         </t>
                                         <t t-elif="move_line.product_id.tracking == 'none' and move_line.product_id.barcode">
                                             <div t-field="move_line.product_id.barcode" t-options="{'widget': 'barcode', 'img_style': 'width:100%; max-height: 150px;'}" />

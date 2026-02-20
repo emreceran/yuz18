@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Standalone Tree View for Product Planning Group -->
+    <record id="view_product_planning_group_tree" model="ir.ui.view">
+        <field name="name">product.planning.group.tree</field>
+        <field name="model">product.planning.group</field>
+        <field name="arch" type="xml">
+            <list editable="bottom" create="false">
+                <field name="product_id" string="Ürün" force_save="1" readonly="1"/>
+                <field name="diameter_width" string="En (cm)" force_save="1" readonly="1"/>
+                <field name="height" string="Boy (cm)" force_save="1" readonly="1"/>
+                <field name="mo_ids" column_invisible="1" force_save="1"/>
+                <field name="available_mo_count" readonly="1" string="Bekleyen"/>
+                <field name="selected_count" string="Planlanacak"/>
+            </list>
+
+        </field>
+    </record>
+</odoo>
