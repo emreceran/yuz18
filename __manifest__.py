@@ -16,6 +16,7 @@ Long description of module's purpose
     # for the full list
     'category': 'Uncategorized',
     'version': '0.1',
+    'application': True,
 
     # any module necessary for this one to work correctly
     'depends': ['base', 'mrp', 'sale_stock', 'sale_project', 'mrp_sale_info', 'sale_management', 'project'],
