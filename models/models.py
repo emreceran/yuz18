@@ -322,6 +322,13 @@ class MrpWorkcenter(models.Model):
     x_width_capacity = fields.Float(string="Width Capacity")
     x_height_capacity = fields.Float(string="Height Capacity")
     x_max_length_capacity = fields.Float(string="Max Length Capacity")
+    x_hall = fields.Selection([
+        ('hol_1', 'Hol 1'),
+        ('hol_2', 'Hol 2'),
+        ('hol_3', 'Hol 3'),
+        ('hol_4', 'Hol 4'),
+        ('hol_5', 'Hol 5'),
+    ], string="Hol", help="Kalıbın bulunduğu fabrika holü")
 
 
 class ProductTemplateCustom(models.Model):

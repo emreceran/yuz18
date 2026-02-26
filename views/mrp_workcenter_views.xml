@@ -5,7 +5,35 @@
         <field name="model">mrp.workcenter</field>
         <field name="inherit_id" ref="mrp.mrp_workcenter_view"/>
         <field name="arch" type="xml">
+            <!-- Alternatif İş Merkezleri gizle -->
+            <xpath expr="//field[@name='alternative_workcenter_ids']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Çalışma Saatleri gizle -->
+            <xpath expr="//field[@name='resource_calendar_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Üretim Bilgisi grubunu gizle -->
+            <xpath expr="//group[@name='capacity']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Maliyetlendirme Bilgisi grubunu gizle -->
+            <xpath expr="//group[@name='costing']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <!-- Spesifik Kapasiteler tabını gizle -->
+            <xpath expr="//page[@name='capacity']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
             <xpath expr="//group[@name='capacity']" position="after">
+                <group string="Konum">
+                    <field name="x_hall"/>
+                </group>
                 <group string="Kalıp Kapasite Ölçüleri">
                     <field name="x_width_capacity" string="En Kapasitesi (Width)"/>
                     <field name="x_height_capacity" string="Boy Kapasitesi (Height)"/>
@@ -15,3 +43,4 @@
         </field>
     </record>
 </odoo>
+

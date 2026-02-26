@@ -29,6 +29,7 @@ class MrpBatchPlanningWizardStep1(models.TransientModel):
             lambda mo: mo.state not in ['done', 'cancel'] 
             and mo.product_id
             and not mo.is_planned
+            and mo.lot_producing_id  # Seri numarası atanmış olmalı
         )
 
         if not productions:
@@ -45,7 +46,8 @@ class MrpBatchPlanningWizardStep1(models.TransientModel):
                 ('state', 'not in', ['done', 'cancel']),
                 ('product_id', '!=', False),  # NULL olmayanlar
                 ('product_id', '=', mo.product_id.id),
-                ('is_planned', '=', False)  # Planlanmamış olanlar
+                ('is_planned', '=', False),  # Planlanmamış olanlar
+                ('lot_producing_id', '!=', False),  # Seri numarası atanmış olmalı
             ]
             
             # Kriter 1: Procurement Group (En güçlü bağ - aynı sipariş)
