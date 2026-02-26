@@ -875,6 +875,7 @@ class MrpBatchPlanningWizard(models.TransientModel):
         Gruplardan biri değiştiğinde (örn: süre modu değişip uzadığında),
         sonraki grupların SADECE çakışma varsa tarihlerini ileri kaydır.
         Çakışma yoksa mevcut tarihlere DOKUNMA.
+        Satırı olmayan (boş) gruplar atlanır.
         """
         if not self.workcenter_group_ids:
             return
@@ -893,6 +894,10 @@ class MrpBatchPlanningWizard(models.TransientModel):
             previous_end = None
             
             for group in groups:
+                # Satırı olmayan grupları atla - boş gruplar mevcut grupları bozmamalı
+                if not group.line_ids:
+                    continue
+                    
                 current_start = group.date_start
                 if not current_start:
                     continue
@@ -902,10 +907,9 @@ class MrpBatchPlanningWizard(models.TransientModel):
                     prev_end_norm = _normalize_to_working_hours(previous_end)
                     current_start_norm = _normalize_to_working_hours(current_start)
                     if prev_end_norm and current_start_norm and prev_end_norm > current_start_norm:
-                        # Çakışma var: Grubu ileri taşı ve resequence et
+                        # Çakışma var: Grubu ileri taşı ve satırları yeniden hesapla
                         group.date_start = prev_end_norm
-                        if hasattr(group, '_onchange_date_start_resequence'):
-                            group._onchange_date_start_resequence()
+                        group.resequence_lines(force_start_date=prev_end_norm)
                 
                 # Bu grubun bitiş tarihini bul (mevcut veriden, yeniden hesaplamadan)
                 sorted_lines = group.line_ids.sorted('sequence')
@@ -913,10 +917,6 @@ class MrpBatchPlanningWizard(models.TransientModel):
                     last_line = sorted_lines[-1]
                     if last_line.date_finished:
                         previous_end = last_line.date_finished
-                    else:
-                        previous_end = group.date_start
-                else:
-                    previous_end = group.date_start
 
 
     def action_confirm(self):

@@ -78,29 +78,29 @@ class StockLotCustom(models.Model):
                 next_serial = self.generate_lot_names(last_lot.name, 2, code, sale_last_three)[1]['lot_name']
                 return next_serial
             else:
-                next_serial = self.generate_lot_names("00000000000", 2, code, sale_last_three)[1]['lot_name']
+                next_serial = self.generate_lot_names("000000000000", 2, code, sale_last_three)[1]['lot_name']
                 return next_serial
                 
         return False
 
     @api.model
     def generate_lot_names(self, first_lot, count, code, sale_last_three):
-        """Generate structured lot names: YYPPSSSCCCC → year, saleorder, product=ürün kodu, counter."""
-        if len(first_lot) < 11:
-            raise UserError("Lot format geçersiz. En az 11 karakter bekleniyor.")
+        """Generate structured lot names: YYSSSCCCCCCCC → year, saleorder, product=ürün kodu, counter (5 hane)."""
+        if len(first_lot) < 12:
+            raise UserError("Lot format geçersiz. En az 12 karakter bekleniyor.")
 
         # Güncel yıl al (son iki hane)
         year = str(fields.Date.today().year % 100).zfill(2)
 
-        # Sayaç kısmını al
+        # Sayaç kısmını al (son 5 hane)
         try:
-            counter = int(first_lot[7:11])
+            counter = int(first_lot[7:12])
         except ValueError:
             counter = 0
 
-        # Yeni lotlar üret
+        # Yeni lotlar üret (5 haneli sayaç)
         return [{
-            'lot_name': f"{year}{sale_last_three}{code}{str(counter + i).zfill(4)}"
+            'lot_name': f"{year}{sale_last_three}{code}{str(counter + i).zfill(5)}"
         } for i in range(count)]
 
 
@@ -194,5 +194,15 @@ class MrpBatchProduceCustom(models.TransientModel):
         action = self.env["ir.actions.actions"]._for_xml_id("mrp.action_mrp_batch_produce")
         action['res_id'] = self.id
         return action
-    
-    
+
+    @api.depends('production_id', 'component_separator')
+    def _compute_production_text_help(self):
+        basic_text = "Üretilecek her ürün için bir satır yazın, seri numaraları aşağıdaki gibi:\n"
+        for wizard in self:
+            finished_product = wizard.production_id.product_id.display_name
+            text = basic_text + finished_product
+            for move_raw in wizard.production_id.move_raw_ids:
+                if move_raw.product_id.tracking == "none":
+                    continue
+                text += wizard.component_separator + move_raw.product_id.display_name
+            wizard.production_text_help = text

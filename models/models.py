@@ -323,11 +323,14 @@ class MrpWorkcenter(models.Model):
     x_height_capacity = fields.Float(string="Height Capacity")
     x_max_length_capacity = fields.Float(string="Max Length Capacity")
     x_hall = fields.Selection([
-        ('hol_1', 'Hol 1'),
-        ('hol_2', 'Hol 2'),
-        ('hol_3', 'Hol 3'),
-        ('hol_4', 'Hol 4'),
-        ('hol_5', 'Hol 5'),
+        ('asik_holu', 'Aşık Holü'),
+        ('dis_hol', 'Dış Hol'),
+        ('makas_holu', 'Makas Holü'),
+        ('orta_hol_on', 'Orta Hol Ön Kısım'),
+        ('orta_hol_arka', 'Orta Hol Arka Kısım'),
+        ('arka_bahce', 'Arka Bahçe'),
+        ('yan_yol', 'Yan Yol'),
+        ('dogrular_arka_bahce', 'Doğrular Arka Bahçe'),
     ], string="Hol", help="Kalıbın bulunduğu fabrika holü")
 
 

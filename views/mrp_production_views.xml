@@ -17,7 +17,7 @@
                             <field name="yogunluk"/>
                             <field name="agirlik"/>
                             <field name="kalip_id"/>
-                            <field name="sale_id"/>
+                            <field name="sale_id" string="Proje No"/>
                             <field name="project_id"/>
                             <field name="backorder_sequence"/>
                             <field name="procurement_total_quant"/>
@@ -139,4 +139,48 @@
             </field>
         </record>
     </data>
+
+    <!-- Toplu üretim wizard'ındaki buton çevirileri -->
+    <record id="view_mrp_batch_produce_form_inherit" model="ir.ui.view">
+        <field name="name">mrp.batch.produce.form.inherit.yuz18</field>
+        <field name="model">mrp.batch.produce</field>
+        <field name="inherit_id" ref="mrp.view_mrp_batch_produce_form"/>
+        <field name="arch" type="xml">
+            <!-- Produce butonunu gizle -->
+            <xpath expr="//button[@name='action_done']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- Prepare MO → Üretime Hazırla -->
+            <xpath expr="//button[@name='action_prepare']" position="attributes">
+                <attribute name="string">Üretime Hazırla</attribute>
+            </xpath>
+            <!-- Discard → Vazgeç -->
+            <xpath expr="//button[@special='cancel']" position="attributes">
+                <attribute name="string">Vazgeç</attribute>
+            </xpath>
+            <!-- 3 separator alanını gizle -->
+            <xpath expr="//field[@name='component_separator']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='lots_quantity_separator']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='lots_separator']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- First Lot/SN → İlk Lot/SN -->
+            <xpath expr="//field[@name='lot_name']" position="attributes">
+                <attribute name="string">İlk Lot/SN</attribute>
+            </xpath>
+            <!-- Generate → Oluştur -->
+            <xpath expr="//button[@name='action_generate_production_text']" position="attributes">
+                <attribute name="string">Oluştur</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Batch Production başlığını Türkçeye çevir -->
+    <record id="mrp.action_mrp_batch_produce" model="ir.actions.act_window">
+        <field name="name">Toplu Üretim</field>
+    </record>
 </odoo>
