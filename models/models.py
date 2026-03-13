@@ -148,9 +148,10 @@ class MrpProduction(models.Model):
                     val_name = ptav.product_attribute_value_id.name
                     val_float = 0.0
                     try:
-                        # Değeri sayıya çevirmeye çalış (Örn: "17.5 cm" → 17.5)
-                        # Rakamları ve nokta karakterini koru
-                        numeric_val_str = ''.join(c for c in val_name if c.isdigit() or c == '.')
+                        # Değeri sayıya çevirmeye çalış (Örn: "17,5 cm" → 17.5)
+                        # Rakamları, nokta ve virgül karakterlerini koru (Türkçe ondalık ayırıcı: virgül)
+                        numeric_val_str = ''.join(c for c in val_name if c.isdigit() or c in '.,' )
+                        numeric_val_str = numeric_val_str.replace(',', '.')
                         if numeric_val_str:
                             val_float = float(numeric_val_str)
                     except ValueError:
@@ -300,6 +301,21 @@ class MrpProduction(models.Model):
             else:
                 rec.project_id = False
 
+
+    def action_recompute_dimensions(self):
+        """Seçili MO'ların en/boy/hacim/ağırlık değerlerini yeniden hesapla (GEÇİCİ)"""
+        self._compute_en_boy()
+        self._compute_hacim()
+        self._compute_agirlik()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'message': f'{len(self)} adet MO için boyutlar yeniden hesaplandı.',
+                'type': 'success',
+                'sticky': False,
+            }
+        }
 
     def action_open_batch_planning(self):
         """Seçili MO'lar için custom batch planning wizard'ını aç."""

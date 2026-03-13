@@ -38,6 +38,8 @@
                 <!-- Standart Plan butonunu kaldırıp custom wizard butonunu koy -->
                 <xpath expr="//list/header/button[@name='button_plan']" position="replace">
                     <button name="action_open_batch_planning" type="object" string="Planla"/>
+                    <button name="button_unplan" type="object" string="Planlamayı Kaldır"/>
+                    <button name="action_recompute_dimensions" type="object" string="Boyutları Güncelle"/>
                 </xpath>
 
                 <xpath expr="//field[@name='name']" position="after">

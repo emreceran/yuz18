@@ -22,8 +22,9 @@
         <field name="name">mrp.batch.planning.wizard.form</field>
         <field name="model">mrp.batch.planning.wizard</field>
         <field name="arch" type="xml">
-            <form string="Toplu Üretim Planlama">
+            <form string="Toplu Planlama - Kalıp Seçimi">
                 <sheet>
+                    <!-- Gizli Alanlar -->
                     <group invisible="1">
                         <field name="scheduled_date"/>
                         <field name="available_mo_ids" force_save="1"/>
@@ -33,23 +34,41 @@
                         <field name="used_mo_ids" force_save="1"/>
                     </group>
 
-                    
-                    <!-- Kalıp Seçimi Paneli -->
-                    <group string="Kalıp Ekle">
-                        <group>
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <!-- BÖLÜM 1: KALIP SEÇİMİ + MEVCUT PLANLAMALAR       -->
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="alert alert-info mb-0 py-2" role="alert">
+                                <strong>📋 Kalan Üretim Emri:</strong>
+                                <field name="remaining_mo_count" readonly="1" class="fw-bold"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="🔧 Kalıp Ekle">
                             <field name="selected_workcenter_id" string="Kalıp Seç" options="{'no_create': True}"/>
                             <field name="workcenter_date_start" string="Başlangıç Tarihi"/>
+                            <div class="mt-2">
+                                <button name="action_add_workcenter"
+                                        string="➕ Kalıba Ekle"
+                                        type="object"
+                                        class="btn-primary btn-lg"
+                                        invisible="not selected_workcenter_id"/>
+                            </div>
                         </group>
-                        <group>
-                            <field name="remaining_mo_count" string="Kalan Üretim Emri" readonly="1"/>
-                            <button name="action_add_workcenter" string="Kalıba Ekle" type="object" class="btn-primary" invisible="not selected_workcenter_id"/>
+                        <group string="📅 Kalıptaki Mevcut Planlamalar" invisible="not selected_workcenter_id">
+                            <field name="existing_plan_info" nolabel="1" colspan="2" readonly="1"/>
                         </group>
                     </group>
-                    
-                    <!-- Ürün Bazlı Gruplar (Kalıp seçilince göster) -->
-                    <group string="Bu Kalıba Uygun Ürünler" invisible="not selected_workcenter_id">
+
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <!-- BÖLÜM 2: BU KALIBA UYGUN ÜRÜNLER                 -->
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <group string="📦 Bu Kalıba Uygun Ürünler" invisible="not selected_workcenter_id">
                         <field name="step2_product_group_ids" nolabel="1">
-                            <list editable="bottom" create="false">
+                            <list editable="bottom" create="false" decoration-info="selected_count > 0">
                                 <field name="product_id" readonly="1" force_save="1" string="Ürün"/>
                                 <field name="diameter_width" readonly="1" force_save="1" string="En (cm)"/>
                                 <field name="height" readonly="1" force_save="1" string="Boy (cm)"/>
@@ -58,77 +77,84 @@
                                 <field name="total_length" readonly="1" string="Seçilen Uzunluk"/>
                                 <field name="mo_ids" column_invisible="1" force_save="1"/>
                             </list>
-
                         </field>
-
                     </group>
-                    
-                    <!-- Kalıp Bazlı Gruplar -->
-                    <separator string="Kalıp Planlamaları" invisible="not workcenter_group_ids"/>
+
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <!-- BÖLÜM 3: KALIP PLANLAMALARI (EKLENEN GRUPLAR)     -->
+                    <!-- ═══════════════════════════════════════════════════ -->
+                    <separator string="🗂️ Kalıp Planlamaları" invisible="not workcenter_group_ids"/>
                     <field name="workcenter_group_ids" nolabel="1" widget="one2many" invisible="not workcenter_group_ids">
-                        <list create="false">
+                        <list create="false" decoration-success="production_count > 0">
                             <field name="workcenter_id" readonly="1" force_save="1" string="Kalıp"/>
                             <field name="date_start" string="Başlangıç Tarihi"/>
-                            <field name="production_count" readonly="1" string="Üretim Emri Sayısı"/>
-                            <field name="workcenter_capacity" readonly="1" string="Kalıp Kapasitesi (cm)"/>
+                            <field name="production_count" readonly="1" string="Üretim Emri"/>
+                            <field name="workcenter_capacity" readonly="1" string="Kapasite (cm)"/>
                         </list>
                         <form string="Kalıp Detayı">
-                            <group>
+                            <sheet>
+                                <div class="oe_title mb-3">
+                                    <h2>
+                                        <field name="workcenter_id" readonly="1" force_save="1"/>
+                                    </h2>
+                                </div>
                                 <group>
-                                    <field name="workcenter_id" readonly="1" force_save="1" string="Kalıp"/>
-                                    <field name="date_start" string="Başlangıç Tarihi"/>
+                                    <group string="📋 Bilgiler">
+                                        <field name="date_start" string="Başlangıç Tarihi"/>
+                                        <field name="production_count" readonly="1" string="Üretim Emri Sayısı"/>
+                                        <field name="workcenter_capacity" readonly="1" string="Kalıp Kapasitesi (cm)"/>
+                                    </group>
                                 </group>
-                                <group>
-                                    <field name="production_count" readonly="1" string="Üretim Emri Sayısı"/>
-                                    <field name="workcenter_capacity" readonly="1" string="Kalıp Kapasitesi (cm)"/>
-                                </group>
-                            </group>
-                            
-                            <!-- Bu Kalıba Eklenebilir Üretim Emirleri -->
-                            <notebook>
-                                <page string="Kullanılabilir Üretim Emirleri (Aşağıdaki Satırlara Eklenebilir)">
-                                    <field name="available_for_placement_ids" nolabel="1" readonly="1">
-                                        <list>
-                                            <field name="name" string="Üretim Emri"/>
-                                            <field name="product_id" string="Ürün"/>
-                                            <field name="en" string="En (cm)"/>
-                                            <field name="boy" string="Boy (cm)"/>
-                                            <field name="uzunluk" string="Uzunluk (cm)"/>
 
-                                        </list>
-                                    </field>
-                                </page>
-                            </notebook>
-                            
-                            <separator string="Üretim Emirleri"/>
-                            <field name="line_ids" nolabel="1">
-                                <list editable="bottom" decoration-danger="capacity_exceeded == True" default_order="sequence">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="production_ids" 
-                                           widget="many2many_tags"
-                                           domain="[('id', 'in', parent.dropdown_mo_ids)]"
-                                           options="{'no_create': True}" 
-                                           string="Üretim Emirleri"/>
-                                    <field name="product_names" string="Ürün Detayları"/>
-                                    <field name="time_mode" string="Döküm Sayısı"/>
-                                    <field name="total_length_usage" string="Uzunluk (cm)" readonly="1"/>
-                                    <field name="capacity_status" string="Durum" readonly="1"/>
-                                    <field name="date_start" string="Başlangıç" readonly="1" force_save="1"/>
-                                    <field name="date_finished" string="Bitiş" readonly="1" force_save="1"/>
-                                    <field name="capacity_exceeded" column_invisible="1"/>
-                                    <field name="line_capacity" column_invisible="1"/>
-                                </list>
-                            </field>
+                                <!-- Kullanılabilir Üretim Emirleri -->
+                                <notebook>
+                                    <page string="📥 Eklenebilir Üretim Emirleri">
+                                        <field name="available_for_placement_ids" nolabel="1" readonly="1">
+                                            <list>
+                                                <field name="name" string="Üretim Emri"/>
+                                                <field name="product_id" string="Ürün"/>
+                                                <field name="en" string="En (cm)"/>
+                                                <field name="boy" string="Boy (cm)"/>
+                                                <field name="uzunluk" string="Uzunluk (cm)"/>
+                                            </list>
+                                        </field>
+                                    </page>
+                                </notebook>
+
+                                <separator string="📋 Üretim Emirleri"/>
+                                <field name="line_ids" nolabel="1">
+                                    <list editable="bottom" decoration-danger="capacity_exceeded == True" default_order="sequence">
+                                        <field name="sequence" widget="handle"/>
+                                        <field name="production_ids"
+                                               widget="many2many_tags"
+                                               domain="[('id', 'in', parent.dropdown_mo_ids)]"
+                                               options="{'no_create': True}"
+                                               string="Üretim Emirleri"/>
+                                        <field name="product_names" string="Ürün Detayları"/>
+                                        <field name="time_mode" string="Döküm Sayısı"/>
+                                        <field name="total_length_usage" string="Uzunluk (cm)" readonly="1"/>
+                                        <field name="capacity_status" string="Durum" readonly="1"/>
+                                        <field name="date_start" string="Başlangıç" readonly="1" force_save="1"/>
+                                        <field name="date_finished" string="Bitiş" readonly="1" force_save="1"/>
+                                        <field name="capacity_exceeded" column_invisible="1"/>
+                                        <field name="line_capacity" column_invisible="1"/>
+                                    </list>
+                                </field>
+                            </sheet>
                         </form>
                     </field>
-                    
+
                     <!-- Eski batch_line_ids (backward compatibility) -->
                     <group invisible="workcenter_group_ids or remaining_mo_count">
                         <field name="batch_line_ids"/>
                     </group>
                 </sheet>
                 <footer>
-                    <button name="action_confirm" string="Planla" type="object" class="btn-primary" invisible="not workcenter_group_ids"/>
+                    <button name="action_confirm"
+                            string="✅ Planlamayı Onayla"
+                            type="object"
+                            class="btn-primary btn-lg"
+                            invisible="not workcenter_group_ids"/>
                     <button string="İptal" class="btn-secondary" special="cancel"/>
                 </footer>
             </form>

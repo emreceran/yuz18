@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+
+    <!-- MRP Üretim Formu - Bitmiş Ürün Konumu her zaman düzenlenebilir -->
+    <record id="mrp_production_form_location_dest_editable" model="ir.ui.view">
+        <field name="name">mrp.production.form.location.dest.editable</field>
+        <field name="model">mrp.production</field>
+        <field name="inherit_id" ref="mrp.mrp_production_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='miscellaneous']//field[@name='location_dest_id'][@readonly]" position="attributes">
+                <attribute name="readonly">0</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Stok Lot Liste Görünümü - Konum, Proje, Üretim Tarihi ekle -->
+    <record id="view_production_lot_tree_inherit" model="ir.ui.view">
+        <field name="name">stock.production.lot.list.inherit.yuz18</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.view_production_lot_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="project_id" string="Proje" optional="show"/>
+                <field name="production_location_dest_id" string="Bitmiş Ürün Konumu" optional="show"/>
+                <field name="production_date" string="Üretim Tarihi" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Stok Lot Arama Görünümü - Hol, Proje, Üretim Tarihi filtresi -->
+    <record id="search_product_lot_filter_inherit" model="ir.ui.view">
+        <field name="name">stock.lot.search.inherit.yuz18</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="stock.search_product_lot_filter"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='product_id']" position="after">
+                <field name="project_id" string="Proje"/>
+                <field name="production_location_dest_id" string="Bitmiş Ürün Konumu"/>
+            </xpath>
+            <xpath expr="//filter[@name='creation_date']" position="after">
+                <filter string="Üretim Tarihi" name="production_date" date="production_date"/>
+            </xpath>
+            <xpath expr="//filter[@name='group_by_product']" position="after">
+                <filter name="group_by_project" string="Proje" domain="[]" context="{'group_by': 'project_id'}"/>
+                <filter name="group_by_location_dest" string="Bitmiş Ürün Konumu" domain="[]" context="{'group_by': 'production_location_dest_id'}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -197,7 +197,55 @@ class MrpBatchPlanningWizard(models.TransientModel):
         string='Kalan Üretim Emri Sayısı',
         compute='_compute_remaining_mo_count'
     )
-    
+
+    existing_plan_info = fields.Html(
+        string='Mevcut Planlamalar',
+        compute='_compute_existing_plan_info',
+    )
+
+    @api.depends('selected_workcenter_id', 'workcenter_date_start')
+    def _compute_existing_plan_info(self):
+        import pytz
+        tz = pytz.timezone('Europe/Istanbul')
+        for rec in self:
+            if not rec.selected_workcenter_id:
+                rec.existing_plan_info = False
+                continue
+
+            date_filter = rec.workcenter_date_start or fields.Datetime.now()
+            work_orders = self.env['mrp.workorder'].search([
+                ('workcenter_id', '=', rec.selected_workcenter_id.id),
+                ('state', 'not in', ['done', 'cancel']),
+                ('date_start', '>=', date_filter),
+            ], order='date_start asc', limit=20)
+
+            if not work_orders:
+                rec.existing_plan_info = '<p style="color:#888;">Bu tarihten sonra planlama yok.</p>'
+                continue
+
+            rows = ''
+            for i, wo in enumerate(work_orders):
+                mo_name = wo.production_id.name or '-'
+                product = wo.production_id.product_id.display_name or '-'
+                lot_no = wo.production_id.lot_producing_id.name if wo.production_id.lot_producing_id else '-'
+                d_start = wo.date_start.replace(tzinfo=pytz.utc).astimezone(tz).strftime('%d.%m %H:%M') if wo.date_start else '-'
+                d_end = wo.date_finished.replace(tzinfo=pytz.utc).astimezone(tz).strftime('%d.%m %H:%M') if wo.date_finished else '-'
+                bg = '#f9f9f9' if i % 2 == 0 else '#fff'
+                rows += f'<tr style="background:{bg};"><td style="padding:3px 6px;">{mo_name}</td><td style="padding:3px 6px;">{product}</td><td style="padding:3px 6px;">{lot_no}</td><td style="padding:3px 6px;">{d_start}</td><td style="padding:3px 6px;">{d_end}</td></tr>'
+
+            rec.existing_plan_info = f'''
+                <table style="width:100%;font-size:12px;border-collapse:collapse;border:1px solid #ddd;">
+                    <thead><tr style="background:#875A7B;color:#fff;">
+                        <th style="padding:5px 6px;text-align:left;">MO</th>
+                        <th style="padding:5px 6px;text-align:left;">Ürün</th>
+                        <th style="padding:5px 6px;text-align:left;">Lot No</th>
+                        <th style="padding:5px 6px;text-align:left;">Başlangıç</th>
+                        <th style="padding:5px 6px;text-align:left;">Bitiş</th>
+                    </tr></thead>
+                    <tbody>{rows}</tbody>
+                </table>
+            '''
+
     @api.depends('available_mo_ids', 'used_mo_ids')
     def _compute_remaining_mo_count(self):
         for rec in self:

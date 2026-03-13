@@ -21,13 +21,29 @@ class StockLotCustom(models.Model):
     )
     
     # ADIM 2: PROJE BİLGİSİNİ BU MRP KAYDINDAN İLİŞKİLENDİR
-    # BU ALAN İÇİN ARTIK COMPUTE METODU YAZILMAZ!
     project_id = fields.Many2one(
         'project.project',
         related='mrp_producing_id.project_id', 
         store=True,
         string='Proje',
-        readonly=True # İlişkili alanlar genellikle salt okunur olmalıdır
+        readonly=True
+    )
+
+    # ADIM 3: BİTMİŞ ÜRÜN KONUMU (Üretim Emri → location_dest_id)
+    production_location_dest_id = fields.Many2one(
+        'stock.location',
+        related='mrp_producing_id.location_dest_id',
+        store=True,
+        string='Bitmiş Ürün Konumu',
+        readonly=True
+    )
+
+    # ADIM 4: ÜRETİM TARİHİ
+    production_date = fields.Datetime(
+        related='mrp_producing_id.date_start',
+        store=True,
+        string='Üretim Tarihi',
+        readonly=True
     )
     
     # BU METOT SADECE mrp_producing_id alanını hesaplamalıdır!
@@ -67,30 +83,49 @@ class StockLotCustom(models.Model):
                 ('company_id', '=', company.id),
                 ('company_id', '=', False),
                 ('project_id', '=', project_id.name)
-            ], order='id DESC')
+            ])
 
-            # filtered = candidates.filtered(lambda lot: lot.name[4:7] == last_three)
-
-           
-            # En son oluşturulan lotu bul (id'ye göre)
+            # Lot adlarındaki sayaç kısmını (son 5 hane) parse ederek en büyüğünü bul
             if candidates:
-                last_lot = candidates.sorted(key=lambda lot: lot.id)[-1]  # en son oluşturulan
-                next_serial = self.generate_lot_names(last_lot.name, 2, code, sale_last_three)[1]['lot_name']
-                return next_serial
-            else:
-                next_serial = self.generate_lot_names("000000000000", 2, code, sale_last_three)[1]['lot_name']
-                return next_serial
+                max_counter = 0
+                max_lot = None
+                for lot in candidates:
+                    if lot.name and len(lot.name) >= 12:
+                        try:
+                            counter = int(lot.name[7:12])
+                            if counter > max_counter:
+                                max_counter = counter
+                                max_lot = lot
+                        except (ValueError, IndexError):
+                            continue
+                if max_lot:
+                    next_serial = self.generate_lot_names(max_lot.name, 1, code, sale_last_three)[0]['lot_name']
+                    return next_serial
+
+            # Hiç lot yoksa veya geçerli sayaç bulunamadıysa sıfırdan başla
+            next_serial = self.generate_lot_names("000000000000", 1, code, sale_last_three)[0]['lot_name']
+            return next_serial
                 
         return False
 
     @api.model
     def generate_lot_names(self, first_lot, count, code, sale_last_three):
-        """Generate structured lot names: YYSSSCCCCCCCC → year, saleorder, product=ürün kodu, counter (5 hane)."""
+        """Generate structured lot names: YYSSSCCCCCCCC → year, saleorder, product=ürün kodu, counter (5 hane).
+        Mevcut lot adlarını atlayarak çakışmayı önler."""
         if len(first_lot) < 12:
             raise UserError("Lot format geçersiz. En az 12 karakter bekleniyor.")
 
         # Güncel yıl al (son iki hane)
         year = str(fields.Date.today().year % 100).zfill(2)
+
+        # Prefix: yıl + sipariş sonu + ürün kodu (sayaç hariç sabit kısım)
+        prefix = f"{year}{sale_last_three}{code}"
+
+        # Mevcut lot adlarını al (aynı prefix ile başlayanlar)
+        existing_lots = self.env['stock.lot'].search([
+            ('name', 'like', f"{prefix}%")
+        ])
+        existing_names = set(existing_lots.mapped('name'))
 
         # Sayaç kısmını al (son 5 hane)
         try:
@@ -98,10 +133,15 @@ class StockLotCustom(models.Model):
         except ValueError:
             counter = 0
 
-        # Yeni lotlar üret (5 haneli sayaç)
-        return [{
-            'lot_name': f"{year}{sale_last_three}{code}{str(counter + i).zfill(5)}"
-        } for i in range(count)]
+        # Mevcut olanları atlayarak yeni lotlar üret
+        result = []
+        while len(result) < count:
+            lot_name = f"{prefix}{str(counter).zfill(5)}"
+            if lot_name not in existing_names:
+                result.append({'lot_name': lot_name})
+            counter += 1
+
+        return result
 
 
 class MrpProductionCustom(models.Model):
