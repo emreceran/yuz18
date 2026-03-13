@@ -38,6 +38,7 @@ Long description of module's purpose
         'wizard/batch_planning_wizard_step1_views.xml',
         'wizard/batch_planning_workcenter_group_views.xml',
         'wizard/batch_planning_wizard_views.xml',
+        'views/mrp_workcenter_tag_views.xml',
 
         # 'views/task.xml',
 
