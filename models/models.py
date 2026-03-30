@@ -165,21 +165,38 @@ class MrpProduction(models.Model):
             rec.en = en_val
             rec.boy = boy_val
 
-    @api.depends('product_id.product_template_attribute_value_ids')
+    # @api.depends('product_id.product_template_attribute_value_ids')
+    # def _compute_urun_adi(self):
+    #     """
+    #     Ürünün varyant özelliklerinden 'Ürün Adı' değerini alır.
+    #     Değer char olarak aktarılır, manuel düzenlemeye izin verilir.
+    #     """
+    #     for rec in self:
+    #         urun_adi_val = ''
+    #         if rec.product_id and rec.product_id.product_template_attribute_value_ids:
+    #             for ptav in rec.product_id.product_template_attribute_value_ids:
+    #                 attr_name = ptav.attribute_id.name.strip().lower()
+    #                 if attr_name == "ürün adı":
+    #                     urun_adi_val = ptav.product_attribute_value_id.name
+    #                     break
+    #         rec.urun_adi = urun_adi_val
+
+    @api.depends('product_description_variants')
     def _compute_urun_adi(self):
         """
-        Ürünün varyant özelliklerinden 'Ürün Adı' değerini alır.
-        Değer char olarak aktarılır, manuel düzenlemeye izin verilir.
+        Ürünün varyant özelliklerinden 'Ürün Adı' değerini regex ile çeker.
         """
+        # "ürün adı: Değer" formatını yakalar
+        pattern_urun_adi = re.compile(r"ürün adı:\s*(?:ürün adı:\s*)?(.*?)(?=\s*,|\s*\n|$)", re.IGNORECASE)
+
         for rec in self:
-            urun_adi_val = ''
-            if rec.product_id and rec.product_id.product_template_attribute_value_ids:
-                for ptav in rec.product_id.product_template_attribute_value_ids:
-                    attr_name = ptav.attribute_id.name.strip().lower()
-                    if attr_name == "ürün adı":
-                        urun_adi_val = ptav.product_attribute_value_id.name
-                        break
-            rec.urun_adi = urun_adi_val
+            source_string = rec.product_description_variants or ""
+            match_adi = pattern_urun_adi.search(source_string)
+
+            if match_adi:
+                rec.urun_adi = match_adi.group(1).strip()
+            else:
+                rec.urun_adi = ""
 
     @api.depends('product_description_variants')
     def _compute_aciklama_uzunluk_from_variants(self):
