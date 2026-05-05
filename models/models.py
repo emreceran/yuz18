@@ -4,12 +4,12 @@ from datetime import datetime, time, timedelta
 
 import pytz
 from odoo import models, fields, api
-import re # Regex modülünü import et
+import re  # Regex modülünü import et
 import logging
 from odoo.exceptions import UserError
 
-
 _logger = logging.getLogger(__name__)
+
 
 class MrpProduction(models.Model):
     _inherit = "mrp.production"
@@ -47,23 +47,23 @@ class MrpProduction(models.Model):
     yogunluk = fields.Float(
         string="Yoğunluk (g/cm³)",
         default=2.5,
-        readonly=False, # Manuel düzenlemeye izin ver
-        store=True, # Yoğunluk genellikle sabittir, saklayalım
+        readonly=False,  # Manuel düzenlemeye izin ver
+        store=True,  # Yoğunluk genellikle sabittir, saklayalım
         help="Malzemenin yoğunluğu (varsayılan: 2.5 g/cm³)."
     )
     hacim = fields.Float(
-        string="Hacim (cm³)", # Etiket güncellendi
+        string="Hacim (cm³)",  # Etiket güncellendi
         compute="_compute_hacim",
-        store=True, # Hesaplanan değer saklansın
-        readonly=True, # Hesaplanan alan
+        store=True,  # Hesaplanan değer saklansın
+        readonly=True,  # Hesaplanan alan
         help="Hesaplanan hacim: En(cm) x Boy(cm) x Uzunluk(cm)",
-        digits = (16, 3)  # Gösterim hassasiyeti
+        digits=(16, 3)  # Gösterim hassasiyeti
     )
     agirlik = fields.Float(
         string="Ağırlık (Ton)",
         compute="_compute_agirlik",
-        store=True, # Hesaplanan değer saklansın
-        readonly=True, # Hesaplanan alan
+        store=True,  # Hesaplanan değer saklansın
+        readonly=True,  # Hesaplanan alan
         help="Hesaplanan ağırlık: Hacim(cm³) x Yoğunluk(g/cm³) / 1000"
     )
 
@@ -102,31 +102,29 @@ class MrpProduction(models.Model):
         help="İlgili ilk iş emrinin iş merkezi."  # Yardım metni güncellendi
     )
 
-
-    procurement_total_quant = fields.Float( # Toplam miktar küsüratlı olabilir, Float daha uygun
-        string="Tedarik Grubu Toplam Miktar", # İsim güncellendi
+    procurement_total_quant = fields.Float(  # Toplam miktar küsüratlı olabilir, Float daha uygun
+        string="Tedarik Grubu Toplam Miktar",  # İsim güncellendi
         compute="_compute_procurement_total_quant",
-        store=True, # Hesaplanan değer saklansın
-        readonly=True, # Hesaplanan alan
+        store=True,  # Hesaplanan değer saklansın
+        readonly=True,  # Hesaplanan alan
         help="Bu üretim emrinin ait olduğu tedarik grubundaki tüm üretim emirlerinin toplam miktarı."
     )
     proje_mikari = fields.Char(
-        string="Üretim İlerleme", # Etiket güncellendi
+        string="Üretim İlerleme",  # Etiket güncellendi
         compute="_compute_proje_miktari",
-        store=True, # Hesaplanan değer saklansın
-        readonly=True, # Hesaplanan alan
+        store=True,  # Hesaplanan değer saklansın
+        readonly=True,  # Hesaplanan alan
         help="Mevcut üretim sırası / Tedarik grubu toplam miktar"
     )
-
 
     project_id = fields.Many2one(
         'project.project',
         string="Proje",
-        compute="_compute_project_id", # Sadece bu compute kalsın
+        compute="_compute_project_id",  # Sadece bu compute kalsın
         store=True,
         # readonly=False, # Manuel değiştirilebilir olması istendi
     )
-    
+
     # Planlama Durumu için
     # NOT: Odoo'nun standart is_planned field'ı kullanılıyor
     # workorder_ids.date_start VE workorder_ids.date_finished kontrolü
@@ -150,13 +148,14 @@ class MrpProduction(models.Model):
                     try:
                         # Değeri sayıya çevirmeye çalış (Örn: "17,5 cm" → 17.5)
                         # Rakamları, nokta ve virgül karakterlerini koru (Türkçe ondalık ayırıcı: virgül)
-                        numeric_val_str = ''.join(c for c in val_name if c.isdigit() or c in '.,' )
+                        numeric_val_str = ''.join(c for c in val_name if c.isdigit() or c in '.,')
                         numeric_val_str = numeric_val_str.replace(',', '.')
                         if numeric_val_str:
                             val_float = float(numeric_val_str)
                     except ValueError:
                         val_float = 0.0
-                        _logger.warning(f"Özellik ('{attr_name}':'{val_name}') sayıya çevrilemedi (Ürün: {rec.product_id.display_name})")
+                        _logger.warning(
+                            f"Özellik ('{attr_name}':'{val_name}') sayıya çevrilemedi (Ürün: {rec.product_id.display_name})")
 
                     if attr_name == "en":
                         en_val = val_float
@@ -236,7 +235,7 @@ class MrpProduction(models.Model):
         for rec in self:
             try:
                 # en, boy, uzunluk Integer
-                rec.hacim = float( (rec.en or 0) * (rec.boy or 0) * (rec.uzunluk or 0) )
+                rec.hacim = float((rec.en or 0) * (rec.boy or 0) * (rec.uzunluk or 0))
             except (ValueError, TypeError) as e:
                 _logger.error(f"Hacim hesaplama hatası (ID: {rec.id}): {e}", exc_info=True)
                 rec.hacim = 0.0
@@ -289,7 +288,7 @@ class MrpProduction(models.Model):
                 rec.procurement_total_quant = rec.product_qty
 
     # Üretim İlerleme Göstergesi için
-    @api.depends('backorder_sequence', 'procurement_total_quant') # Bağımlılık doğru
+    @api.depends('backorder_sequence', 'procurement_total_quant')  # Bağımlılık doğru
     def _compute_proje_miktari(self):
         """Üretim ilerlemesini "Mevcut Sıra / Toplam Miktar" formatında gösterir."""
         for rec in self:
@@ -308,7 +307,7 @@ class MrpProduction(models.Model):
             rec.sale_id = rec.procurement_group_id.sale_id if rec.procurement_group_id else False
 
     # Proje için (Compute ile)
-    @api.depends('sale_id.project_ids') # sale_id compute ile geldiği için ona bağlamak daha iyi
+    @api.depends('sale_id.project_ids')  # sale_id compute ile geldiği için ona bağlamak daha iyi
     def _compute_project_id(self):
         """Satış siparişi ile ilişkili ilk projeyi bulur."""
         for rec in self:
@@ -317,7 +316,6 @@ class MrpProduction(models.Model):
                 rec.project_id = rec.sale_id.project_ids[0]
             else:
                 rec.project_id = False
-
 
     def action_recompute_dimensions(self):
         """Seçili MO'ların en/boy/hacim/ağırlık değerlerini yeniden hesapla (GEÇİCİ)"""
@@ -333,6 +331,17 @@ class MrpProduction(models.Model):
                 'sticky': False,
             }
         }
+
+    def action_confirm_and_mark_done(self):
+        """Seçili MO'ları önce onayla (draft ise), sonra tamamlandı olarak işaretle."""
+        for rec in self:
+            if rec.state == 'draft':
+                rec.action_confirm()
+        # Sadece onaylanmış / devam eden MO'ları bitir
+        to_done = self.filtered(lambda r: r.state in ('confirmed', 'progress', 'to_close'))
+        to_done.button_mark_done()
+        # False döndürmek listeyi yerinde yeniler, grup açılımları korunur
+        return False
 
     def action_open_batch_planning(self):
         """Seçili MO'lar için custom batch planning wizard'ını aç."""
@@ -368,10 +377,9 @@ class MrpWorkcenter(models.Model):
 
 
 class ProductTemplateCustom(models.Model):
-    _inherit="product.template"
+    _inherit = "product.template"
     urun_kodu = fields.Char(
         string="Ürün Kodu",
         help="Ürün seri numarası içerisindeki değer."
     )
     x_check_strand_rules = fields.Boolean(string="Çap/En-Boy Kontrolü Yapılsın mı?")
-
